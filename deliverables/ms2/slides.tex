@@ -54,7 +54,7 @@
     Yahoo Finance & daily OHLCV 2005--2026 for \nYahoo{} of \nUniverse{} past and present members & \texttt{yfinance} \\
     Alpaca & daily bars from 2016 for \nAlpaca{} members Yahoo lacks; 5-minute bars & REST API \\
     FRED & VIX, 3-month VIX, credit spread, curve slope, T-bill & CSV \\
-    SEC EDGAR & earnings dates (8-K Item 2.02), industry codes & JSON API \\
+    SEC EDGAR & earnings-release filing times (8-K Item 2.02), industry codes; pending & JSON API \\
     \bottomrule
   \end{tabular}
   \vspace{1em}
@@ -79,7 +79,7 @@
       \item HAR lags: day, week, 4 weeks
       \item range, overnight, downside variance; returns; liquidity
       \item market: SPY variance, VIX, rates
-      \item earnings timing; Alpha158 (158 price-volume factors)
+      \item Alpha158 (158 price-volume factors); earnings timing next
     \end{itemize}
   \end{columns}
   \vspace{0.6em}
@@ -135,7 +135,7 @@
       \item Target: $\log \sum_{d \in \text{next week}} \tfrac12 \log^2\!\tfrac{H_d}{L_d} - (2\log 2 - 1)\log^2\!\tfrac{C_d}{O_d}$
             (Garman--Klass, 1980).
       \item The proposal feared daily data is too noisy. Against 5-minute realized variance
-            (Alpaca, 24 stocks, \rvN{} stock-weeks): correlation \rvCorr{}.
+            (Alpaca, 24 current members since 2016, \rvN{} stock-weeks): correlation \rvCorr{}.
       \item Log gap \rvGap{} on average: a level shift that a model absorbs.
     \end{itemize}
   \end{columns}
@@ -151,7 +151,6 @@
       \item Stress week: VIX $\ge 30$ on the Friday, known when we forecast.
       \item Only \stressShare{} of stock-weeks (\nStressWeeks{} weeks): 2008--09, 2020, 2022.
       \item We will report results separately for calm and stress weeks.
-      \item Feature standard deviations run from 0.004 to 14: standardize for ridge and lasso.
     \end{itemize}
   \end{columns}
 \end{frame}
@@ -163,10 +162,10 @@
     Risk & Control \\
     \midrule
     windows past the Friday & all windows end at the close; tests truncate data and recompute \\
-    earnings after the close & an 8-K filed after 16:00 ET counts for the next week \\
+    earnings after the close & an 8-K filed after 16:00 ET counts for the next week (filing time as proxy) \\
     knowing the next earnings date & extrapolated from past announcement dates only \\
     10-Q dates as earnings dates & not used: filed weeks after the announcement \\
-    today's index list & the membership snapshot in force on each date \\
+    today's index list & the snapshot in force on each date (the last, 2026-08-18, carried forward) \\
     back-adjusted prices & every price feature is a ratio or a return \\
     overlapping targets & a one-week gap between training and test windows \\
     \bottomrule
@@ -181,9 +180,10 @@
   Train 2005--2015, tune 2016--2018, test 2019--2026 with yearly expanding refits.
   \begin{enumerate}\setlength\itemsep{0.6em}
     \item \textbf{Accuracy}: do pooled ridge/lasso and gradient-boosted trees beat per-stock HAR on
-          mean QLIKE and MSE, with Diebold--Mariano rejecting equal accuracy at 5\%?
-    \item \textbf{Attribution and regimes}: which feature blocks carry any gain, and does it keep
-          its sign in calm and in stress weeks?
+          mean QLIKE and MSE? Diebold--Mariano at 5\% on the weekly mean loss difference (Newey--West);
+          all models scored on the same rows.
+    \item \textbf{Attribution and regimes}: which feature blocks carry any gain (refit without each
+          block), and does it keep its sign in calm and in stress weeks?
   \end{enumerate}
   \vspace{0.4em}
   \textbf{Changed}: economic-value backtest dropped; earnings from 8-K timestamps; fundamentals
@@ -202,7 +202,7 @@
     yfinance can fail; delisted stocks missing & cached fetches; renames, wrong series and Alpaca fill; coverage reported \\
     XBRL only from mid-2009 & fundamentals deferred \\
     \midrule
-    AC209A: one method not covered in class & HAR, QLIKE loss (Patton, 2011), Diebold--Mariano test \\
+    AC209A: one method not covered in class & HAR, GARCH(1,1), QLIKE loss (Patton, 2011), Diebold--Mariano test \\
     \bottomrule
   \end{tabular}
 \end{frame}
@@ -227,7 +227,7 @@
     \small
     \begin{enumerate}
       \item May we use CRSP via Harvard's WRDS licence to remove pre-2016 survivorship bias?
-      \item Does HAR + QLIKE + Diebold--Mariano meet the AC209A requirement?
+      \item Do HAR, GARCH, QLIKE and Diebold--Mariano meet the AC209A requirement?
       \item Yearly expanding refits on 2019--2026, or one fit?
     \end{enumerate}
   \end{columns}
