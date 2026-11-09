@@ -45,8 +45,8 @@ It is answered when, for each model, the test-period table of losses and Diebold
 against HAR, and the block-ablation table split by regime, exist.
 
 \textbf{How and why it changed.} The economic-value question (volatility-targeted portfolio, Sharpe
-ratio, drawdown, Fama--French regression) is dropped, as the staff notes require. Earnings timing will
-come from the filing times of SEC 8-K Item 2.02 releases, a proxy for the announcement, not quarterly
+ratio, drawdown, Fama--French regression) is dropped, as the staff notes require. Earnings timing comes
+from the filing times of SEC 8-K Item 2.02 releases, a proxy for the announcement, not quarterly
 filings that arrive weeks after it. Fundamentals from XBRL are deferred: they start in mid-2009 and the question does not
 need them. Stress is defined by VIX at prediction time, not by calendar years, and qlib's Alpha158
 price-volume factors \citep{yang2020qlib} join the features.
@@ -62,7 +62,7 @@ Finance} (\nYahoo{} tickers, 2005--2026) and \href{https://alpaca.markets}{Alpac
 \nAlpaca{} members Yahoo lacks, plus 5-minute bars); market state from
 \href{https://fred.stlouisfed.org}{FRED} (VIX, 3-month VIX, credit spread, curve slope, T-bill);
 earnings-release filing times and industry codes from
-\href{https://www.sec.gov/search-filings/edgar-application-programming-interfaces}{SEC EDGAR} (code ready, fetch pending). The raw
+\href{https://www.sec.gov/search-filings/edgar-application-programming-interfaces}{SEC EDGAR}. The raw
 data is \dataMB{} MB and \nRawRows{} stock-days, \nCleanRows{} after cleaning. The modeling table has
 \textbf{\nTableRows{} rows and \nTableCols{} columns}: one row per stock and week (\nCompanies{}
 companies, \nWeeks{} weeks), holding the target and every feature known at that Friday's close.
@@ -100,7 +100,7 @@ companies, \nWeeks{} weeks), holding the target and every feature known at that 
 
 \textbf{Features}: HAR lags (day, week, four weeks); Parkinson, Rogers--Satchell, overnight and downside
 variance; returns; dollar volume and Amihud illiquidity; SPY variance; VIX, 3-month VIX, credit spread,
-curve slope, T-bill; Alpha158; next, weeks since earnings, an expected-earnings flag and industry.
+curve slope, T-bill; weeks since earnings, an expected-earnings flag and industry; Alpha158.
 \textbf{Models}: per-stock HAR and GARCH(1,1) baselines; pooled ridge and lasso on standardized
 features with training-window imputation; gradient-boosted trees (LightGBM). Clustering and neural
 networks only if time remains \citep{christensen2023ml,gu2020ml}. \textbf{Evaluation}: QLIKE and MSE on
