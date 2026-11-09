@@ -1,7 +1,7 @@
 # AC-209A_VolForecast
 
-Milestone 2 deliverables in progress: `ms2.ipynb` builds the stock-week table; slides and the revised
-proposal live in `deliverables/ms2/`.
+Milestone 2 done: `ms2.ipynb` builds the stock-week table; slides and the revised proposal live in
+`deliverables/ms2/`. Milestone 3 (EDA, baselines) is next.
 
 ## Scope
 

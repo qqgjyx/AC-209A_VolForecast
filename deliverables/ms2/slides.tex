@@ -132,10 +132,10 @@
     \column{0.53\textwidth}
     \small
     \begin{itemize}\setlength\itemsep{0.6em}
-      \item Target: $\log \sum_{d \in \text{next week}} \tfrac12 \log^2\!\tfrac{H_d}{L_d} - (2\log 2 - 1)\log^2\!\tfrac{C_d}{O_d}$
+      \item Target: $\log \sum_{d \in \text{next week}} \bigl[\tfrac12 \log^2\!\tfrac{H_d}{L_d} - (2\log 2 - 1)\log^2\!\tfrac{C_d}{O_d}\bigr]$
             (Garman--Klass, 1980).
       \item The proposal feared daily data is too noisy. Against 5-minute realized variance
-            (Alpaca, 24 current members since 2016, \rvN{} stock-weeks): correlation \rvCorr{}.
+            (Alpaca, 24 current members since 2016, \rvN{} stock-weeks): correlation of log variances \rvCorr{}.
       \item Log gap \rvGap{} on average: a level shift that a model absorbs.
     \end{itemize}
   \end{columns}
@@ -149,7 +149,7 @@
     \small
     \begin{itemize}\setlength\itemsep{0.6em}
       \item Stress week: VIX $\ge 30$ on the Friday, known when we forecast.
-      \item Only \stressShare{} of stock-weeks (\nStressWeeks{} weeks): 2008--09, 2020, 2022.
+      \item Only \stressShare{} of stock-weeks (\nStressWeeks{} weeks), mostly 2008--09, 2020 and 2022.
       \item We will report results separately for calm and stress weeks.
     \end{itemize}
   \end{columns}

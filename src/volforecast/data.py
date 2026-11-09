@@ -140,17 +140,22 @@ def fetch_prices(
     """
     logging.getLogger("yfinance").setLevel(logging.CRITICAL)  # else one line per delisted ticker
 
-    def download(chunk: list[str]) -> pd.DataFrame:
-        batch = {t.replace(".", "-"): t for t in chunk}  # Yahoo spells BRK.B as BRK-B
+    def get(symbols: list[str], threads: bool) -> pd.DataFrame:
         wide = yf.download(
-            [*batch, CANARY], start=start, end=end, auto_adjust=False, actions=False,
-            progress=False, threads=True,
+            [*symbols, CANARY], start=start, end=end, auto_adjust=False, actions=False,
+            progress=False, threads=threads,
         )  # fmt: skip
         long = wide.stack(level="Ticker", future_stack=True).dropna(how="all")
         if CANARY not in long.index.unique("Ticker"):
             raise RuntimeError(f"{CANARY} missing: rate-limited, retry later")
-        if CANARY not in batch:
-            long = long.drop(CANARY, level="Ticker")
+        return long if CANARY in symbols else long.drop(CANARY, level="Ticker")
+
+    def download(chunk: list[str]) -> pd.DataFrame:
+        batch = {t.replace(".", "-"): t for t in chunk}  # Yahoo spells BRK.B as BRK-B
+        long = get(list(batch), threads=True)
+        absent = sorted(set(batch) - set(long.index.unique("Ticker")))
+        if absent:  # ask once more, without threads, so a transient failure is not cached
+            long = pd.concat([long, get(absent, threads=False)])
         long = long.rename(columns=PRICE_COLUMNS).rename(index=batch, level="Ticker")
         long.index.names, long.columns.name = ["date", "ticker"], None
         return long

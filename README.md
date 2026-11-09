@@ -25,7 +25,7 @@ The portfolio backtest of the original proposal is out of scope, per the staff n
 ```bash
 git clone https://github.com/qqgjyx/AC-209A_VolForecast.git
 cd AC-209A_VolForecast
-uv sync            # or: pip install -e .
+uv sync            # or: pip install -e ".[notebook]"
 ```
 
 Optional keys go in `.env` (git-ignored): `ALPACA_API_KEY_ID` and `ALPACA_API_SECRET_KEY` from a free
@@ -36,7 +36,8 @@ Alpaca paper-trading account, and `SEC_USER_AGENT="Your Name your@email"` for SE
 [`ms2.ipynb`](ms2.ipynb) is the Milestone 2 deliverable: it gets, understands and cleans the data,
 builds the stock-week modeling table and states the revised question. Run it locally or on Colab
 with the badge above. **No raw data is shipped**: the notebook downloads every source into `data/`
-on its first run (about 90 MB, a few minutes) and reads the cache afterwards.
+on its first run (about 440 MB, most of it SEC filings; about 10 minutes) and reads the cache
+afterwards, in about a minute.
 
 ## 🗂️ Repository Structure
 
@@ -80,4 +81,5 @@ uv run python scripts/smoke_test.py --notebooks  # also executes ms2.ipynb in pl
 uv run ruff check . && uv run ruff format --check src tests scripts && uv run mypy
 ```
 
-CI runs the same checks on every pull request. Work on a branch and open a pull request into `main`.
+CI runs lint, types, the tests and the offline smoke test on every pull request; it does not
+execute the notebook, which needs the network. Work on a branch and open a pull request into `main`.

@@ -2,15 +2,16 @@
 
 **No raw data is shipped in this repository.** [`ms2.ipynb`](../ms2.ipynb) downloads every source at
 runtime through `volforecast.data` and caches it here; everything in this directory except this
-file is git-ignored. Each price cache holds a `request.json`, so a changed ticker list or date range
-cannot silently reuse it.
+file is git-ignored. The Yahoo and Alpaca daily caches hold a `request.json`, so a changed ticker
+list or date range cannot silently reuse them; `rv5/`, `sec/` and `fred/` are cached per file and
+never refreshed, so delete them to refetch.
 
 ## Sources
 
 | Path | Source | Pinned to | Licence / terms |
 |---|---|---|---|
 | `sp500_membership.csv` | [fja05680/sp500](https://github.com/fja05680/sp500), `S&P 500 Historical Components & Changes (Updated).csv` | commit `a2430f2` (2026-09-07); last snapshot 2026-08-18 | see repo |
-| `prices/`, `prices_renamed/`, `market/` | Yahoo Finance via [yfinance](https://pypi.org/project/yfinance/) | 2005-01-01 to 2026-11-06 | Yahoo terms restrict redistribution |
+| `prices/`, `market/` | Yahoo Finance via [yfinance](https://pypi.org/project/yfinance/) | 2005-01-01 to 2026-11-06 | Yahoo terms restrict redistribution |
 | `alpaca_daily/`, `rv5/` | [Alpaca market data](https://docs.alpaca.markets/docs/about-market-data-api), SIP feed | 2016-01-01 to 2026-11-06 | free account; no redistribution |
 | `fred/` | [FRED](https://fred.stlouisfed.org/): VIXCLS, VXVCLS, BAA10Y, T10Y2Y, DTB3 | downloaded on first run | public |
 | `sec/` | [SEC EDGAR](https://www.sec.gov/search-filings/edgar-application-programming-interfaces) submissions | downloaded on first run | public domain |

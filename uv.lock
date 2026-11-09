@@ -1967,6 +1967,13 @@ dependencies = [
     { name = "yfinance" },
 ]
 
+[package.optional-dependencies]
+notebook = [
+    { name = "ipykernel" },
+    { name = "jupyter" },
+    { name = "nbconvert" },
+]
+
 [package.dev-dependencies]
 dev = [
     { name = "ipykernel" },
@@ -1979,7 +1986,10 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "ipykernel", marker = "extra == 'notebook'" },
+    { name = "jupyter", marker = "extra == 'notebook'" },
     { name = "matplotlib", specifier = ">=3.8" },
+    { name = "nbconvert", marker = "extra == 'notebook'" },
     { name = "numpy", specifier = ">=2" },
     { name = "pandas", specifier = ">=2.2" },
     { name = "pyarrow", specifier = ">=15" },
@@ -1987,6 +1997,7 @@ requires-dist = [
     { name = "requests", specifier = ">=2.31" },
     { name = "yfinance", specifier = ">=1" },
 ]
+provides-extras = ["notebook"]
 
 [package.metadata.requires-dev]
 dev = [
