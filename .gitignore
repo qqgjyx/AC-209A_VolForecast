@@ -1,0 +1,22 @@
+# macOS
+.DS_Store
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.ipynb_checkpoints/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+
+# Data and outputs are rebuilt from the download scripts. Yahoo's terms
+# restrict redistribution, so raw prices are never committed.
+/data/*
+!/data/.gitkeep
+!/data/README.md
+/out/*
+!/out/.gitkeep
+
+# Local secrets (API keys, SEC User-Agent contact); never commit them.
+.env
