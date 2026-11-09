@@ -3,15 +3,25 @@ name = "volforecast"
 version = "0.1.0"
 description = "Forecasting next-week realized volatility of S&P 500 stocks (CS1090A/AC209A project 12)"
 readme = "README.md"
+authors = [
+    {name = "Ashley Lee"}, {name = "Juntang Wang"}, {name = "Shuo Yang"},
+    {name = "Simon Manivong"}, {name = "Terry Su"},
+]
+keywords = ["realized volatility", "HAR", "S&P 500", "forecasting", "gradient boosting"]
 requires-python = ">=3.12,<3.14"  # matches the AC-209A course environment
 dependencies = [
-    "numpy>=2.3,<3",
-    "pandas>=3,<4",  # the course moved to pandas 3 in section 02
-    "pyarrow>=21",  # parquet caches under data/
-    "requests",  # SEC EDGAR, FRED and Ken French downloads
-    "yfinance",
-    "matplotlib>=3.10,<4",
+    # Floors stay low so Colab's preinstalled stack satisfies them without a restart.
+    "matplotlib>=3.8",
+    "numpy>=2",
+    "pandas>=2.2",
+    "pyarrow>=15",  # parquet engine for the caches under data/
+    "python-dotenv>=1",  # reads SEC_USER_AGENT and API keys from .env
+    "requests>=2.31",  # SEC EDGAR
+    "yfinance>=1",
 ]
+
+[project.urls]
+Repository = "https://github.com/qqgjyx/AC-209A_VolForecast"
 
 [dependency-groups]
 dev = ["pytest", "ruff", "mypy", "jupyter", "nbconvert", "ipykernel"]
@@ -36,7 +46,7 @@ convention = "google"
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["D"]
 "scripts/*" = ["D"]
-"notebooks/*.ipynb" = ["D", "E501", "E702", "E402", "I001"]
+"*.ipynb" = ["D", "E501", "E702", "E402", "I001"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
