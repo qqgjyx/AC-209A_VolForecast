@@ -20,3 +20,19 @@ __pycache__/
 
 # Local secrets (API keys, SEC User-Agent contact); never commit them.
 .env
+
+# Agent scratch
+.claude/
+
+# LaTeX build files (the PDFs are tracked)
+/deliverables/**/*.aux
+/deliverables/**/*.bbl
+/deliverables/**/*.blg
+/deliverables/**/*.fdb_latexmk
+/deliverables/**/*.fls
+/deliverables/**/*.log
+/deliverables/**/*.nav
+/deliverables/**/*.out
+/deliverables/**/*.snm
+/deliverables/**/*.toc
+/deliverables/**/*.vrb

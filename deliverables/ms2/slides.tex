@@ -1,0 +1,236 @@
+%% Milestone 2 slides, group 38. Build: latexmk -pdf slides.tex
+%% Every number comes from numbers.tex, which ms2.ipynb writes.
+\documentclass[aspectratio=169,11pt]{beamer}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\graphicspath{{../../images/}}
+\input{numbers}
+
+\definecolor{accent}{HTML}{2A78D6}
+\setbeamercolor{structure}{fg=accent}
+\setbeamertemplate{navigation symbols}{}
+\setbeamertemplate{footline}{\hfill\insertframenumber\,/\,\inserttotalframenumber\hspace{1.5em}\vspace{0.8em}}
+\setbeamerfont{frametitle}{size=\Large}
+\newcommand{\speaker}[1]{\hfill{\normalsize\color{gray}#1}}
+
+\title{Forecasting Next-Week Volatility of S\&P 500 Stocks}
+\subtitle{Milestone 2: data wrangling and project redefinition}
+\author{Ashley Lee \and Juntang Wang \and Shuo Yang \and Simon Manivong \and Terry Su}
+\institute{CS1090A / AC209A, Fall 2026 \quad Group 38, project 12 \quad TF: Daniel More Torres}
+\date{}
+
+\begin{document}
+
+%% =================================================================
+%% Title
+%% =================================================================
+\begin{frame}
+  \titlepage
+\end{frame}
+
+%% =================================================================
+%% Question
+%% =================================================================
+\begin{frame}{The question and why it matters \speaker{Ashley}}
+  \begin{itemize}\setlength\itemsep{0.8em}
+    \item Returns are close to unpredictable; \textbf{volatility clusters}, so it can be forecast.
+    \item Volatility forecasts size positions, set risk limits and price options.
+    \item HAR (Corsi, 2009), a regression on last day, week and month of volatility, is hard to beat.
+    \item \textbf{Our question}: with free daily data, does one pooled model with cross-sectional
+          features beat HAR fit stock by stock, out of sample, and in which market regimes?
+  \end{itemize}
+\end{frame}
+
+%% =================================================================
+%% Data
+%% =================================================================
+\begin{frame}{The data: five public sources, \dataMB{} MB, one notebook \speaker{Juntang}}
+  \footnotesize
+  \begin{tabular}{@{}lp{0.62\textwidth}l@{}}
+    \toprule
+    Source & What & How \\
+    \midrule
+    fja05680/sp500 & S\&P 500 members on \nSnapshots{} dates since 1996 & CSV, pinned \\
+    Yahoo Finance & daily OHLCV 2005--2026 for \nYahoo{} of \nUniverse{} past and present members & \texttt{yfinance} \\
+    Alpaca & daily bars from 2016 for \nAlpaca{} members Yahoo lacks; 5-minute bars & REST API \\
+    FRED & VIX, 3-month VIX, credit spread, curve slope, T-bill & CSV \\
+    SEC EDGAR & earnings dates (8-K Item 2.02), industry codes & JSON API \\
+    \bottomrule
+  \end{tabular}
+  \vspace{1em}
+  \small
+  \begin{itemize}
+    \item Every fetch is cached and re-runnable; no data is committed (licences).
+    \item Code in \texttt{src/volforecast}, unit tests incl.\ no-look-ahead checks, CI on every pull request.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{What one row is \speaker{Juntang}}
+  \begin{columns}[T]
+    \column{0.47\textwidth}
+    \textbf{Raw table}: one ticker on one trading day\\[0.3em]
+    \small \nRawRows{} rows: \texttt{date}, \texttt{ticker}, \texttt{open}, \texttt{high}, \texttt{low},
+    \texttt{close}, \texttt{adj\_close}, \texttt{volume}, \texttt{source}
+    \column{0.5\textwidth}
+    \textbf{Modeling table}: one stock in one week\\[0.3em]
+    \small \nTableRows{} rows $\times$ \nTableCols{} columns, \nCompanies{} companies, \nWeeks{} weeks
+    \begin{itemize}
+      \item target: log of next week's Garman--Klass variance
+      \item HAR lags: day, week, 4 weeks
+      \item range, overnight, downside variance; returns; liquidity
+      \item market: SPY variance, VIX, rates
+      \item earnings timing; Alpha158 (158 price-volume factors)
+    \end{itemize}
+  \end{columns}
+  \vspace{0.6em}
+  \centering\small Every feature is known at that Friday's close.
+\end{frame}
+
+%% =================================================================
+%% Cleaning
+%% =================================================================
+\begin{frame}{Survivorship: who is missing, and when \speaker{Shuo}}
+  \begin{columns}[c]
+    \column{0.6\textwidth}
+    \includegraphics[width=\linewidth]{coverage.png}
+    \column{0.38\textwidth}
+    \small
+    \begin{itemize}\setlength\itemsep{0.5em}
+      \item Yahoo drops delisted firms and files renamed ones under the new symbol.
+      \item \nRenames{} renames recovered (BK $\to$ BNY, ANTM $\to$ ELV, \ldots).
+      \item Alpaca fills members that traded in 2016 or later.
+      \item Coverage: \covEarly{} in 2005, \covTest{} in 2019, \covEnd{} in 2026.
+      \item Pre-2016 training data leans toward survivors.
+    \end{itemize}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{Cleaning: each rule, and what it removes \speaker{Shuo}}
+  \begin{columns}[c]
+    \column{0.55\textwidth}
+    \includegraphics[width=\linewidth]{cleaning_steps.png}
+    \column{0.43\textwidth}
+    \small
+    \begin{enumerate}\setlength\itemsep{0.4em}
+      \item \textbf{Index spells}: Yahoo reuses tickers (today's \texttt{FB} is an ETF).
+      \item \textbf{Wrong series}: \nWrong{} hand-checked (Yahoo's PARA trades near \$100{,}000);
+            \nBreaks{} series that change company (Yahoo's JCI before 2016 is Tyco).
+      \item \textbf{Impossible bars} and \textbf{no-trade days}.
+      \item Prices scaled by \texttt{adj\_close / close}, as qlib does.
+    \end{enumerate}
+    \nRawRows{} $\to$ \nCleanRows{} stock-days. No rule looks at later rows.
+  \end{columns}
+\end{frame}
+
+%% =================================================================
+%% Target
+%% =================================================================
+\begin{frame}{The target, checked against 5-minute data \speaker{Simon}}
+  \begin{columns}[c]
+    \column{0.45\textwidth}
+    \centering\includegraphics[width=0.9\linewidth]{proxy_check.png}
+    \column{0.53\textwidth}
+    \small
+    \begin{itemize}\setlength\itemsep{0.6em}
+      \item Target: $\log \sum_{d \in \text{next week}} \tfrac12 \log^2\!\tfrac{H_d}{L_d} - (2\log 2 - 1)\log^2\!\tfrac{C_d}{O_d}$
+            (Garman--Klass, 1980).
+      \item The proposal feared daily data is too noisy. Against 5-minute realized variance
+            (Alpaca, 24 stocks, \rvN{} stock-weeks): correlation \rvCorr{}.
+      \item Log gap \rvGap{} on average: a level shift that a model absorbs.
+    \end{itemize}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{Calm and stress: the regression analogue of class imbalance \speaker{Simon}}
+  \begin{columns}[c]
+    \column{0.6\textwidth}
+    \includegraphics[width=\linewidth]{volatility_over_time.png}
+    \column{0.38\textwidth}
+    \small
+    \begin{itemize}\setlength\itemsep{0.6em}
+      \item Stress week: VIX $\ge 30$ on the Friday, known when we forecast.
+      \item Only \stressShare{} of stock-weeks (\nStressWeeks{} weeks): 2008--09, 2020, 2022.
+      \item We will report results separately for calm and stress weeks.
+      \item Feature standard deviations run from 0.004 to 14: standardize for ridge and lasso.
+    \end{itemize}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{Information leakage: how each risk is closed \speaker{Simon}}
+  \small
+  \begin{tabular}{@{}p{0.3\textwidth}p{0.62\textwidth}@{}}
+    \toprule
+    Risk & Control \\
+    \midrule
+    windows past the Friday & all windows end at the close; tests truncate data and recompute \\
+    earnings after the close & an 8-K filed after 16:00 ET counts for the next week \\
+    knowing the next earnings date & extrapolated from past announcement dates only \\
+    10-Q dates as earnings dates & not used: filed weeks after the announcement \\
+    today's index list & the membership snapshot in force on each date \\
+    back-adjusted prices & every price feature is a ratio or a return \\
+    overlapping targets & a one-week gap between training and test windows \\
+    \bottomrule
+  \end{tabular}
+\end{frame}
+
+%% =================================================================
+%% Revised question
+%% =================================================================
+\begin{frame}{Revised question \speaker{Terry}}
+  \small
+  Train 2005--2015, tune 2016--2018, test 2019--2026 with yearly expanding refits.
+  \begin{enumerate}\setlength\itemsep{0.6em}
+    \item \textbf{Accuracy}: do pooled ridge/lasso and gradient-boosted trees beat per-stock HAR on
+          mean QLIKE and MSE, with Diebold--Mariano rejecting equal accuracy at 5\%?
+    \item \textbf{Attribution and regimes}: which feature blocks carry any gain, and does it keep
+          its sign in calm and in stress weeks?
+  \end{enumerate}
+  \vspace{0.4em}
+  \textbf{Changed}: economic-value backtest dropped; earnings from 8-K timestamps; fundamentals
+  deferred (XBRL starts 2009); Alpha158 added; stress defined by VIX, not calendar years.
+\end{frame}
+
+\begin{frame}{Staff notes and the AC209A requirement \speaker{Terry}}
+  \small
+  \begin{tabular}{@{}p{0.42\textwidth}p{0.5\textwidth}@{}}
+    \toprule
+    Staff note & What we do \\
+    \midrule
+    omit economic value, Sharpe, drawdown, factor regression & dropped entirely \\
+    prioritize regularized regression and boosted trees & the two pooled models of Q1 \\
+    clustering and neural networks optional & only if time remains after Q1 and Q2 \\
+    yfinance can fail; delisted stocks missing & cached fetches; renames, wrong series and Alpaca fill; coverage reported \\
+    XBRL only from mid-2009 & fundamentals deferred \\
+    \midrule
+    AC209A: one method not covered in class & HAR, QLIKE loss (Patton, 2011), Diebold--Mariano test \\
+    \bottomrule
+  \end{tabular}
+\end{frame}
+
+%% =================================================================
+%% Next steps
+%% =================================================================
+\begin{frame}{Next steps and questions for you \speaker{all}}
+  \begin{columns}[T]
+    \column{0.5\textwidth}
+    \textbf{Milestone 3} (proposed owners)
+    \small
+    \begin{itemize}
+      \item HAR and GARCH baselines: Simon
+      \item ridge and lasso: Shuo
+      \item gradient-boosted trees: Ashley
+      \item QLIKE, MSE, Diebold--Mariano: Terry
+      \item data upkeep and CRSP: Juntang
+    \end{itemize}
+    \column{0.48\textwidth}
+    \textbf{Questions}
+    \small
+    \begin{enumerate}
+      \item May we use CRSP via Harvard's WRDS licence to remove pre-2016 survivorship bias?
+      \item Does HAR + QLIKE + Diebold--Mariano meet the AC209A requirement?
+      \item Yearly expanding refits on 2019--2026, or one fit?
+    \end{enumerate}
+  \end{columns}
+\end{frame}
+
+\end{document}

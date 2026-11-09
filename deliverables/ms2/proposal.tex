@@ -1,0 +1,128 @@
+%% Milestone 2 revised proposal, group 38. Build: latexmk -pdf proposal.tex
+%% Every number comes from numbers.tex, which ms2.ipynb writes.
+\documentclass[11pt]{article}
+\usepackage[margin=0.7in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage[numbers,sort&compress]{natbib}
+\usepackage[hidelinks]{hyperref}
+\usepackage{enumitem}
+\usepackage{titlesec}
+\titlespacing*{\section}{0pt}{0.6em}{0.2em}
+\titleformat*{\section}{\normalsize\bfseries}
+\setlist{nosep, leftmargin=1.3em}
+\setlength{\parskip}{0.3em}
+\setlength{\parindent}{0pt}
+\setlength{\bibsep}{0pt}
+\input{numbers}
+
+\begin{document}
+
+{\large\textbf{Forecasting Next-Week Volatility of S\&P 500 Stocks: Revised Proposal}}\\[0.1em]
+Group 38, project 12: Ashley Lee, Juntang Wang, Shuo Yang, Simon Manivong, Terry Su. TF: Daniel More Torres.
+Code and notebook: \url{https://github.com/qqgjyx/AC-209A_VolForecast}
+
+%% =================================================================
+%% Question
+%% =================================================================
+\section*{1. Project question}
+
+For each S\&P 500 stock and week, we forecast next week's log realized variance, measured by the
+Garman--Klass estimator from daily prices \citep{garman1980gk}. Models train on 2005--2015, tune on
+2016--2018 and are tested on 2019--2026 with yearly expanding refits, a one-week gap at each
+boundary and no tuning on test data.
+\begin{enumerate}
+  \item \textbf{Accuracy.} Do pooled models fit on all stocks (ridge and lasso, then gradient-boosted
+        trees) beat a HAR regression fit per stock \citep{corsi2009har} on mean QLIKE
+        \citep{patton2011qlike} and MSE, with the Diebold--Mariano test \citep{diebold1995dm} rejecting
+        equal accuracy at the 5\% level?
+  \item \textbf{Attribution and regimes.} Which feature blocks account for any gain (block permutation
+        importance), and does the gain keep its sign in calm weeks and in stress weeks (VIX $\ge 30$ on
+        the Friday)?
+\end{enumerate}
+It is answered when, for each model, the test-period table of losses and Diebold--Mariano statistics
+against HAR, and the block-importance table split by regime, exist.
+
+\textbf{How and why it changed.} The economic-value question (volatility-targeted portfolio, Sharpe
+ratio, drawdown, Fama--French regression) is dropped, as the staff notes require. Earnings timing now
+comes from SEC 8-K Item 2.02 acceptance times, not quarterly filings that arrive weeks after the
+announcement. Fundamentals from XBRL are deferred: they start in mid-2009 and the question does not
+need them. Stress is defined by VIX at prediction time, not by calendar years, and qlib's Alpha158
+price-volume factors \citep{yang2020qlib} join the features.
+
+%% =================================================================
+%% Data
+%% =================================================================
+\section*{2. Data}
+
+\href{https://github.com/fja05680/sp500}{S\&P 500 membership by date} (\nSnapshots{} snapshots,
+\nOldTickers{} tickers since 2005, \nUniverse{} companies once renames are merged); daily prices from \href{https://pypi.org/project/yfinance/}{Yahoo
+Finance} (\nYahoo{} tickers, 2005--2026) and \href{https://alpaca.markets}{Alpaca} (from 2016, for
+\nAlpaca{} members Yahoo lacks, plus 5-minute bars); market state from
+\href{https://fred.stlouisfed.org}{FRED} (VIX, 3-month VIX, credit spread, curve slope, T-bill);
+earnings dates and industry codes from
+\href{https://www.sec.gov/search-filings/edgar-application-programming-interfaces}{SEC EDGAR}. The raw
+data is \dataMB{} MB and \nRawRows{} stock-days, \nCleanRows{} after cleaning. The modeling table has
+\textbf{\nTableRows{} rows and \nTableCols{} columns}: one row per stock and week (\nCompanies{}
+companies, \nWeeks{} weeks), holding the target and every feature known at that Friday's close.
+
+%% =================================================================
+%% Findings
+%% =================================================================
+\section*{3. What we learned from the data}
+
+\begin{itemize}
+  \item \textbf{Survivorship.} Yahoo drops delisted companies. We recovered \nRenames{} renamed tickers
+        (BK became BNY) and filled members Yahoo lacks from Alpaca from 2016; \nNoData{} tickers, all gone
+        before 2016, have no free data. Coverage of index members is \covEarly{} in 2005, \covTest{} in
+        2019 and \covEnd{} in 2026, so pre-2016 training data leans toward survivors. CRSP through WRDS
+        would close the gap; we will ask the TF.
+  \item \textbf{Ticker reuse and wrong series.} Yahoo reuses symbols (today's \texttt{FB} is an ETF), so
+        prices are kept only near each ticker's index spells; \nWrong{} series inside a spell belong to
+        other securities (Yahoo's \texttt{PARA} trades near \$100{,}000), and \nBreaks{} change company on a date
+        (Yahoo's \texttt{JCI} before 2016 is Tyco); hand-checked tables remove both.
+  \item \textbf{The target is a sound proxy.} Against 5-minute realized variance for 24 stocks (\rvN{}
+        stock-weeks), weekly Garman--Klass variance has correlation \rvCorr{}, easing the proposal's
+        worry about noisy daily targets.
+  \item \textbf{Stress is rare.} \stressShare{} of stock-weeks are stress weeks, so results must be
+        reported per regime, not as one pooled loss.
+  \item \textbf{Leakage.} Feature windows end at the Friday close (unit tests truncate the data and
+        recompute), an 8-K filed after 16:00 counts for the next week, membership is point-in-time, and
+        every price feature is a ratio, so back-adjusted prices cannot leak.
+\end{itemize}
+
+%% =================================================================
+%% Plan
+%% =================================================================
+\section*{4. Plan for the rest of the project}
+
+\textbf{Features}: HAR lags (day, week, four weeks); Parkinson, Rogers--Satchell, overnight and downside
+variance; returns; dollar volume and Amihud illiquidity; SPY variance; VIX, 3-month VIX, credit spread,
+curve slope, T-bill; weeks since earnings and an expected-earnings flag; industry; Alpha158.
+\textbf{Models}: per-stock HAR and GARCH(1,1) baselines; pooled ridge and lasso on standardized
+features with training-window imputation; gradient-boosted trees (LightGBM). Clustering and neural
+networks only if time remains \citep{christensen2023ml,gu2020ml}. \textbf{Evaluation}: QLIKE and MSE on
+2019--2026, Diebold--Mariano tests against HAR, block permutation importance, every result split into
+calm and stress weeks.
+
+%% =================================================================
+%% Staff notes
+%% =================================================================
+\section*{5. Staff notes and the AC209A requirement}
+
+Economic-value backtest: dropped. Regularized regression and boosted trees: the two pooled models of
+Q1; clustering and neural networks wait. yfinance failures and missing delisted stocks: fetches are
+cached and resumable, renames, wrong series and the Alpaca fill are documented, and coverage is
+reported. XBRL only from mid-2009: fundamentals deferred. AC209A outside method: HAR, the QLIKE loss and
+the Diebold--Mariano test, none covered in class.
+
+\textbf{Use of generative AI.} Claude Code (Anthropic) helped write the data pipeline, tests and this
+text; the group reviewed every step and verified the numbers, which the notebook computes and exports.
+
+{\footnotesize
+\bibliographystyle{plainnat}
+\bibliography{ref}
+}
+
+\end{document}
