@@ -114,14 +114,18 @@ def add_earnings(w: pd.DataFrame, events: pd.DataFrame) -> pd.DataFrame:
 def alpha158_weekly(daily: pd.DataFrame, chunk: int = 25) -> pd.DataFrame:
     """Alpha158 at each ticker's last trading day of every week, one row per (ticker, week).
 
-    Tickers go `chunk` at a time, ordered by first date so that each wide frame holds few empty
-    cells; peak memory stays near 1 GB on the full panel.
+    Tickers go `chunk` at a time, ordered by first date; peak memory stays near 1 GB. Each wide
+    frame spans every trading day of `daily`, so a day a ticker lacks is a NaN row and a rolling
+    window never reaches across a gap in its data.
     """
+    calendar = pd.DatetimeIndex(np.sort(daily["date"].unique()))
     tickers = daily.groupby("ticker")["date"].min().sort_values().index
     out = []
     for i in range(0, len(tickers), chunk):
         part = daily[daily["ticker"].isin(tickers[i : i + chunk])]
-        wide = part.pivot(index="date", columns="ticker", values=OHLCV)
+        first, last = part["date"].min(), part["date"].max()
+        span = calendar[(calendar >= first) & (calendar <= last)]
+        wide = part.pivot(index="date", columns="ticker", values=OHLCV).reindex(span)
         values, names = alpha158({f: wide[f] for f in OHLCV})
         last = part.groupby(["ticker", week_end(part["date"]).rename("week")])["date"].max()
         rows = wide.index.get_indexer(last.to_numpy())

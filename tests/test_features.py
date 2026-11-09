@@ -105,3 +105,24 @@ def test_build_table_keeps_in_index_rows_with_a_target(daily):
     table = build_table(d, spy, fred)
     assert "DDD" not in set(table["ticker"]) and table["target"].notna().all()
     assert {"har_w", "spy_har_w", "VIXCLS", "KMID"} <= set(table.columns)
+
+
+def test_alpha158_weekly_windows_do_not_cross_a_gap(daily):
+    """A ticker that leaves and comes back must not mix pre-gap rows into its windows."""
+    gap = (daily["ticker"] == "AAA") & daily["date"].between("2020-04-01", "2020-06-30")
+    w = alpha158_weekly(daily[~gap], chunk=1).set_index(["ticker", "week"])
+    assert np.isnan(w.loc[("AAA", pd.Timestamp("2020-07-10")), "MA20"])  # 8 days after the gap
+    assert np.isfinite(w.loc[("BBB", pd.Timestamp("2020-07-10")), "MA20"])
+
+
+def test_earnings_join_several_tickers(daily):
+    w = weekly(daily)
+    times = pd.to_datetime(["2020-02-03 16:30", "2020-05-04 16:30"]).tz_localize("America/New_York")
+    events = pd.concat(
+        pd.DataFrame({"ticker": t, "sic": "1", "accepted": times + pd.Timedelta(days=i)})
+        for i, t in enumerate(["BBB", "AAA", "CCC"])
+    )
+    out = add_earnings(w, events)
+    assert (
+        out.groupby("ticker")["weeks_since_earnings"].count().loc[["AAA", "BBB", "CCC"]].gt(0).all()
+    )
