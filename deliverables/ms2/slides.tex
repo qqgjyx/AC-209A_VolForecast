@@ -5,6 +5,7 @@
 \usepackage{graphicx}
 \graphicspath{{../../images/}}
 \input{numbers}
+\input{findings}  % written by scripts/findings.py
 
 \definecolor{accent}{HTML}{2A78D6}
 \setbeamercolor{structure}{fg=accent}
@@ -75,7 +76,8 @@
     \textbf{Modeling table}: one stock in one week\\[0.3em]
     \small \nTableRows{} rows $\times$ \nTableCols{} columns, \nCompanies{} companies, \nWeeks{} weeks
     \begin{itemize}
-      \item target: log of next week's Garman--Klass variance
+      \item target: log of next week's Garman--Klass variance (trading hours, with the
+            overnight move in its own column)
       \item HAR lags: day, week, 4 weeks
       \item range, overnight, downside variance; returns; liquidity
       \item market: SPY variance, VIX, rates
@@ -138,6 +140,9 @@
             (Alpaca, \rvCompanies{} companies since 2016, delisted included; \rvN{} stock-weeks):
             correlation of log variances \rvCorr{} pooled, \rvCorrWithin{} within company.
       \item Log gap \rvGap{} on average: a level shift that a model absorbs.
+      \item Both sides leave out the overnight move (close to next open). Across \shareCompanies{}
+            companies, Garman--Klass covers a median \gkShare{} of close-to-close variance, and
+            \gkOvernightShare{} with the overnight term added (backup).
     \end{itemize}
   \end{columns}
 \end{frame}
@@ -151,6 +156,9 @@
     \begin{itemize}\setlength\itemsep{0.6em}
       \item Stress week: VIX $\ge 30$ on the Friday, known when we forecast.
       \item Only \stressShare{} of stock-weeks (\nStressWeeks{} weeks), mostly 2008--09, 2020 and 2022.
+      \item The test years hold \stressTest{} stress weeks in \stressTestEpisodes{} episodes,
+            \stressTestTwenty{} of them in 2020, and the tuning years hold \stressTune{}. At
+            VIX $\ge 25$ the test has \stressTestLow{} (backup).
       \item We will report results separately for calm and stress weeks.
     \end{itemize}
   \end{columns}
@@ -182,9 +190,12 @@
   \begin{enumerate}\setlength\itemsep{0.6em}
     \item \textbf{Accuracy}: do pooled ridge/lasso and gradient-boosted trees beat per-stock HAR on
           mean QLIKE and MSE? Diebold--Mariano at 5\% on the weekly mean loss difference (Newey--West);
-          all models scored on the same rows.
+          all models scored on the same rows. A second baseline, HAR pooled with a constant per
+          stock, keeps the gain from pooling apart from the gain from features. QLIKE on the
+          exponential of a log forecast gets a training-only smearing correction (Duan, 1983).
     \item \textbf{Attribution and regimes}: which feature blocks carry any gain (refit without each
-          block), and does it keep its sign in calm and in stress weeks?
+          block), and does it keep its sign in calm and in stress weeks? Holm correction across
+          the family of tests.
   \end{enumerate}
   \vspace{0.4em}
   \textbf{Changed}: economic-value backtest dropped; earnings from 8-K timestamps; fundamentals
@@ -217,7 +228,7 @@
     \textbf{Milestone 3} (proposed owners)
     \small
     \begin{itemize}
-      \item HAR and GARCH baselines: Simon
+      \item HAR (per stock, and pooled with a constant per stock) and GARCH baselines: Simon
       \item ridge and lasso: Shuo
       \item gradient-boosted trees: Ashley
       \item QLIKE, MSE, Diebold--Mariano: Terry
@@ -230,7 +241,53 @@
       \item May we use CRSP via Harvard's WRDS licence to remove pre-2016 survivorship bias?
       \item Do HAR, GARCH, QLIKE and Diebold--Mariano meet the AC209A requirement?
       \item Yearly expanding refits on 2019--2026, or one fit?
+      \item Target: trading-hours variance as now, or add the overnight term back?
     \end{enumerate}
+  \end{columns}
+\end{frame}
+
+%% =================================================================
+%% Backup
+%% =================================================================
+\begin{frame}{Backup: what the daily range misses \speaker{Simon}}
+  \begin{columns}[c]
+    \column{0.6\textwidth}
+    \includegraphics[width=\linewidth]{variance_coverage.png}
+    \column{0.38\textwidth}
+    \footnotesize
+    \begin{itemize}\setlength\itemsep{0.5em}
+      \item \shareCompanies{} companies, 2005--2018 only (train and tune years), days inside the
+            index spell.
+      \item Overnight is a median \overnightShare{} of close-to-close variance
+            (\overnightShareLow{} to \overnightShareHigh{}, 10th to 90th percentile):
+            \overnightShareEarly{} in 2005--09, \overnightShareLate{} in 2010--18.
+      \item After-close earnings news lands there. Adding it back is one line, since
+            \texttt{rv\_overnight} is already in the weekly table.
+    \end{itemize}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{Backup: stress weeks by split \speaker{Simon}}
+  \begin{columns}[c]
+    \column{0.52\textwidth}
+    \includegraphics[width=\linewidth]{stress_weeks.png}
+    \column{0.46\textwidth}
+    \footnotesize\setlength\tabcolsep{4pt}
+    \begin{tabular}{@{}lrrrr@{}}
+      \toprule
+      Split & Weeks & VIX $\ge 30$ & episodes & VIX $\ge 25$ \\
+      \midrule
+      train & \trainWeeks{} & \stressTrain{} & \stressTrainEpisodes{} & \stressTrainLow{} \\
+      tune & \tuneWeeks{} & \stressTune{} & \stressTuneEpisodes{} & \stressTuneLow{} \\
+      test & \testWeeks{} & \stressTest{} & \stressTestEpisodes{} & \stressTestLow{} \\
+      \bottomrule
+    \end{tabular}
+    \vspace{0.8em}
+    \begin{itemize}\setlength\itemsep{0.5em}
+      \item Hyperparameters are tuned on almost no stress weeks.
+      \item The stress verdict rests on about \stressTest{} weekly points, \stressTestTwenty{} of
+            them from 2020. Reporting both cuts and counting episodes helps.
+    \end{itemize}
   \end{columns}
 \end{frame}
 
