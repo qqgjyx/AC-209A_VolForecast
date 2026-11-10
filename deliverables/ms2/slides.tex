@@ -113,11 +113,11 @@
     \column{0.38\textwidth}
     \small
     \begin{itemize}\setlength\itemsep{0.5em}
-      \item CRSP through Harvard's WRDS licence: every member, every day, 2005--2025.
-      \item The same cleaning and weekly table, run on CRSP.
+      \item CRSP (Harvard's WRDS licence), same cleaning: every member, every day, 2005--2025.
       \item 2005--2015: \crspWeeksFree{} stock-weeks in the free data, \crspWeeksCrsp{} in CRSP.
-      \item Survivors are calmer: mean log variance \crspGap{} lower before 2016, within 0.01 after.
-      \item It costs training data more than it biases the target; the test period is untouched.
+      \item Survivors are calmer: mean log variance \crspGap{} below CRSP's in the same year before
+            2016, within 0.01 after.
+      \item From 2019 under 1\% of stock-weeks are missing: the test period is barely affected.
     \end{itemize}
   \end{columns}
 \end{frame}

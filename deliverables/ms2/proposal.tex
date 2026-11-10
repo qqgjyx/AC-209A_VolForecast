@@ -79,7 +79,9 @@ companies, \nWeeks{} weeks), holding the target and every feature known at that 
         2019 and \covEnd{} in 2026, so pre-2016 training data leans toward survivors. A check against
         CRSP (WRDS, every member) measures the cost: from 2005 to 2015 the free table has
         \crspWeeksFree{} stock-weeks against \crspWeeksCrsp{}, and its mean log variance is \crspGap{}
-        lower, about 4\% less variance; from 2016 the two agree. We propose to train on CRSP to 2025.
+        below CRSP's in the same year, on average (about 4\% less variance); from 2016 the gap is
+        under 0.01, and from 2019 under 1\% of stock-weeks are missing. We propose to train on CRSP
+        to 2025.
   \item \textbf{Ticker reuse and wrong series.} Yahoo reuses symbols (today's \texttt{FB} is an ETF), so
         prices are kept only near each ticker's index spells; \nWrong{} series inside a spell belong to
         other securities (Yahoo's \texttt{PARA} trades near \$100{,}000), and \nBreaks{} change company on a date

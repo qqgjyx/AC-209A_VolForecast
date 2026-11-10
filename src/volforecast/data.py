@@ -331,37 +331,43 @@ def fetch_alpaca_rv(
 
 
 WRDS_URL = "postgresql+psycopg://{}@wrds-pgdata.wharton.upenn.edu:9737/wrds?sslmode=require"
-CRSP_SPELLS = """
-select permno, mbrstartdt as start, mbrenddt as "end" from crsp.dsp500list_v2
-where mbrenddt >= '{start}'
+IN_WINDOW = "mbrenddt >= :start and mbrstartdt < :end"  # spells overlapping [start, end)
+CRSP_SPELLS = f"""
+select permno, mbrstartdt as start, mbrenddt as "end" from crsp.dsp500list_v2 where {IN_WINDOW}
 """
-CRSP_ROWS = """
+CRSP_ROWS = f"""
 select permno, dlycaldt as date, dlyopen as open, dlyhigh as high, dlylow as low,
        dlyclose as close, dlyvol as volume, dlycumfacpr as cfacpr
 from crsp.dsf_v2
-where permno in (select permno from crsp.dsp500list_v2 where mbrenddt >= '{start}')
-  and dlycaldt >= '{start}' and dlycaldt < '{end}'
+where permno in (select permno from crsp.dsp500list_v2 where {IN_WINDOW})
+  and dlycaldt >= :start and dlycaldt < :end
 """
 
 
 def fetch_crsp(start: str, end: str, cache_dir: Path) -> tuple[pd.DataFrame, pd.DataFrame]:
     """S&P 500 spells (permno, start, end inclusive) and their CRSP daily rows, from WRDS.
 
-    Needs the `crsp` extra, a WRDS account named by `WRDS_USERNAME` and its password in
-    `~/.pgpass`. CRSP is licensed per user: the cache under `data/` is never committed.
+    Spells are cut at `end` (exclusive). Needs the `crsp` extra, a WRDS account named by
+    `WRDS_USERNAME` and its password in `~/.pgpass`. CRSP is licensed per user: the cache under
+    `data/` is never committed; its `request.json` refetches when the range changes.
     """
-    spells_path, rows_path = cache_dir / "sp500_spells.parquet", cache_dir / "daily.parquet"
-    if not rows_path.exists():
-        from sqlalchemy import create_engine  # optional dependency, only for the first download
+    paths = cache_dir / "sp500_spells.parquet", cache_dir / "daily.parquet"
+    manifest, request = cache_dir / "request.json", {"start": start, "end": end}
+    cached = manifest.exists() and json.loads(manifest.read_text()) == request
+    if not (cached and all(p.exists() for p in paths)):
+        from sqlalchemy import create_engine, text  # optional dependency, first download only
 
         cache_dir.mkdir(parents=True, exist_ok=True)
         engine = create_engine(WRDS_URL.format(os.environ["WRDS_USERNAME"]))
         with engine.connect() as con:
-            spells = pd.read_sql(CRSP_SPELLS.format(start=start), con, parse_dates=["start", "end"])
-            rows = pd.read_sql(CRSP_ROWS.format(start=start, end=end), con, parse_dates=["date"])
-        spells.to_parquet(spells_path)
-        rows.to_parquet(rows_path)
-    return pd.read_parquet(spells_path), pd.read_parquet(rows_path)
+            spells = pd.read_sql(text(CRSP_SPELLS), con, params=request, parse_dates=["start"])
+            rows = pd.read_sql(text(CRSP_ROWS), con, params=request, parse_dates=["date"])
+        last = pd.Timestamp(end) - pd.Timedelta(days=1)
+        spells["end"] = pd.to_datetime(spells["end"]).clip(upper=last)
+        spells.to_parquet(paths[0])
+        rows.to_parquet(paths[1])
+        manifest.write_text(json.dumps(request))
+    return pd.read_parquet(paths[0]), pd.read_parquet(paths[1])
 
 
 def from_crsp(spells: pd.DataFrame, rows: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:

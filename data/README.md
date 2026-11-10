@@ -3,7 +3,8 @@
 **No raw data is shipped in this repository.** [`ms2.ipynb`](../ms2.ipynb) downloads every source at
 runtime through `volforecast.data` and caches it here; everything in this directory except this
 file is git-ignored. The Yahoo and Alpaca daily caches hold a `request.json`, so a changed ticker
-list or date range cannot silently reuse them; `rv5/`, `sec/` and `fred/` are cached per file and
+list or date range cannot silently reuse them, and so does `crsp/`; `rv5/`, `sec/` and `fred/` are
+cached per file and
 never refreshed, so delete them to refetch.
 
 ## Sources
@@ -19,7 +20,7 @@ never refreshed, so delete them to refetch.
 
 **Licence note.** Neither Yahoo, Alpaca nor CRSP allows redistribution, so prices are never
 committed; anyone reproducing the work downloads them, exactly as the notebook does. CRSP needs a
-personal WRDS account; `crsp/` is cached once, so delete it to refetch.
+personal WRDS account.
 
 ## Identity tables
 
@@ -36,7 +37,7 @@ Both live in `src/volforecast/data.py` and were checked by hand.
 - **Survivorship before 2016.** Yahoo keeps no history for delisted companies, and Alpaca's free
   history starts in 2016, so firms that left before 2016 are missing. The notebook reports coverage
   by month, and section 3l measures the cost against CRSP: a third fewer stock-weeks before 2016,
-  with a mean log variance 0.04 lower; from 2016 the two agree.
+  with a mean log variance 0.04 below CRSP's in the same year; from 2016 the gap is under 0.01.
 - **Ticker reuse.** A symbol can now belong to another company; prices are kept only near each
   ticker's index spells (120 days before, 14 after).
 - **Membership after 2026-08-18** is carried forward from the last snapshot.
