@@ -76,8 +76,12 @@ companies, \nWeeks{} weeks), holding the target and every feature known at that 
   \item \textbf{Survivorship.} Yahoo drops delisted companies. We recovered \nRenames{} renamed tickers
         (BK became BNY) and filled members Yahoo lacks from Alpaca from 2016; \nNoData{} tickers, all gone
         before 2016, have no free data. Coverage of index members is \covEarly{} in 2005, \covTest{} in
-        2019 and \covEnd{} in 2026, so pre-2016 training data leans toward survivors. CRSP through WRDS
-        would close the gap; we will ask the TF.
+        2019 and \covEnd{} in 2026, so pre-2016 training data leans toward survivors. A check against
+        CRSP (WRDS, every member) measures the cost: from 2005 to 2015 the free table has
+        \crspWeeksFree{} stock-weeks against \crspWeeksCrsp{}, and its mean log variance is \crspGap{}
+        below CRSP's in the same year, on average (about 4\% less variance); from 2016 the gap is
+        under 0.01, and from 2019 under 1\% of stock-weeks are missing. We propose to train on CRSP
+        to 2025.
   \item \textbf{Ticker reuse and wrong series.} Yahoo reuses symbols (today's \texttt{FB} is an ETF), so
         prices are kept only near each ticker's index spells; \nWrong{} series inside a spell belong to
         other securities (Yahoo's \texttt{PARA} trades near \$100{,}000), and \nBreaks{} change company on a date

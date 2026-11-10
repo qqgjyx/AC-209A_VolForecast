@@ -44,7 +44,7 @@
 %% =================================================================
 %% Data
 %% =================================================================
-\begin{frame}{The data: five public sources, \dataMB{} MB, one notebook \speaker{Juntang}}
+\begin{frame}{The data: five public sources (\dataMB{} MB) and a CRSP check \speaker{Juntang}}
   \footnotesize
   \begin{tabular}{@{}lp{0.62\textwidth}l@{}}
     \toprule
@@ -55,6 +55,7 @@
     Alpaca & daily bars from 2016 for \nAlpaca{} members Yahoo lacks; 5-minute bars & REST API \\
     FRED & VIX, 3-month VIX, credit spread, curve slope, T-bill & CSV \\
     SEC EDGAR & earnings-release filing times (8-K Item 2.02), industry codes & JSON API \\
+    CRSP (WRDS) & every member's daily prices 2005--2025, for the survivorship check only & SQL, licensed \\
     \bottomrule
   \end{tabular}
   \vspace{1em}
@@ -101,6 +102,22 @@
       \item Alpaca fills members that traded in 2016 or later.
       \item Coverage: \covEarly{} in 2005, \covTest{} in 2019, \covEnd{} in 2026.
       \item Pre-2016 training data leans toward survivors.
+    \end{itemize}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{What survivorship costs: a CRSP check \speaker{Shuo}}
+  \begin{columns}[c]
+    \column{0.6\textwidth}
+    \includegraphics[width=\linewidth]{coverage_crsp.png}
+    \column{0.38\textwidth}
+    \small
+    \begin{itemize}\setlength\itemsep{0.5em}
+      \item CRSP (Harvard's WRDS licence), same cleaning: every member, every day, 2005--2025.
+      \item 2005--2015: \crspWeeksFree{} stock-weeks in the free data, \crspWeeksCrsp{} in CRSP.
+      \item Survivors are calmer: mean log variance \crspGap{} below CRSP's in the same year before
+            2016, within 0.01 after.
+      \item From 2019 under 1\% of stock-weeks are missing: the test period is barely affected.
     \end{itemize}
   \end{columns}
 \end{frame}
@@ -227,7 +244,7 @@
     \textbf{Questions}
     \small
     \begin{enumerate}
-      \item May we use CRSP via Harvard's WRDS licence to remove pre-2016 survivorship bias?
+      \item May Milestone 3 train on CRSP (WRDS) to 2025 and use free data for 2026?
       \item Do HAR, GARCH, QLIKE and Diebold--Mariano meet the AC209A requirement?
       \item Yearly expanding refits on 2019--2026, or one fit?
     \end{enumerate}

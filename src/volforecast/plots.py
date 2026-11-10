@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-SERIES = ["#2a78d6", "#eb6834"]  # categorical slots 1-2 of the reference palette
+SERIES = ["#2a78d6", "#eb6834", "#1baf7a"]  # categorical slots 1-3 of the reference palette
 INK, MUTED, GRID = "#0b0b0b", "#52514e", "#e4e3df"
 plt.rcParams.update({
     "figure.figsize": (8, 4), "figure.dpi": 120, "font.size": 12, "axes.titlesize": 14,
@@ -30,9 +30,8 @@ def coverage(shares: pd.DataFrame, path: Path | None = None) -> plt.Figure:
         raise ValueError(f"at most {len(SERIES)} series, got {shares.shape[1]}")
     fig, ax = plt.subplots()
     for color, (name, s) in zip(SERIES, shares.items(), strict=False):
+        s = s.dropna()  # a source may end early (CRSP's last vintage)
         ax.plot(s.index, s * 100, color=color, label=name)
-        ax.annotate(f"{s.iloc[-1] * 100:.0f}%", (s.index[-1], s.iloc[-1] * 100),
-                    xytext=(4, 0), textcoords="offset points", va="center", color=INK)  # fmt: skip
     ax.set(title="Survivorship: index members with price data", xlabel="Date",
            ylabel="Members with data (%)", ylim=(50, 101))  # fmt: skip
     ax.legend(frameon=False, loc="lower right")
