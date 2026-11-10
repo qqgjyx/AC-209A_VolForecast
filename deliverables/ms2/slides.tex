@@ -190,8 +190,8 @@
   \begin{enumerate}\setlength\itemsep{0.6em}
     \item \textbf{Accuracy}: do pooled ridge/lasso and gradient-boosted trees beat per-stock HAR on
           mean QLIKE and MSE? Diebold--Mariano at 5\% on the weekly mean loss difference (Newey--West);
-          all models scored on the same rows. A second baseline, HAR pooled with a constant per
-          stock, keeps the gain from pooling apart from the gain from features. QLIKE on the
+          all models scored on the same rows. A second baseline: HAR pooled across stocks with a
+          constant per stock, to separate the gain from pooling from the gain from features. QLIKE on the
           exponential of a log forecast gets a training-only smearing correction (Duan, 1983).
     \item \textbf{Attribution and regimes}: which feature blocks carry any gain (refit without each
           block), and does it keep its sign in calm and in stress weeks? Holm correction across
@@ -261,8 +261,8 @@
       \item Overnight is a median \overnightShare{} of close-to-close variance
             (\overnightShareLow{} to \overnightShareHigh{}, 10th to 90th percentile):
             \overnightShareEarly{} in 2005--09, \overnightShareLate{} in 2010--18.
-      \item After-close earnings news lands there. Adding it back is one line, since
-            \texttt{rv\_overnight} is already in the weekly table.
+      \item Earnings released after the close show up in this move.
+      \item \texttt{rv\_overnight} is already a column in the weekly table.
     \end{itemize}
   \end{columns}
 \end{frame}
@@ -284,9 +284,8 @@
     \end{tabular}
     \vspace{0.8em}
     \begin{itemize}\setlength\itemsep{0.5em}
-      \item Hyperparameters are tuned on almost no stress weeks.
-      \item The stress verdict rests on about \stressTest{} weekly points, \stressTestTwenty{} of
-            them from 2020. Reporting both cuts and counting episodes helps.
+      \item Tuning (2016--18) has \stressTune{} stress week at VIX $\ge 30$.
+      \item \stressTestTwenty{} of the test's \stressTest{} stress weeks are in 2020.
     \end{itemize}
   \end{columns}
 \end{frame}
