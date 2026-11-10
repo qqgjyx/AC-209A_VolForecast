@@ -39,7 +39,9 @@ def variance_shares(
     measures: `features.daily_measures` output with the `in_index` flag from cleaning, sorted by
     ticker and date. Uses days inside the company's index spell, between `start` and `end`
     (inclusive), that directly follow the previous session. Each share is a ratio of sums over
-    those days, so a share of 1.0 means the measure adds up to the close-to-close variance.
+    those days, so a share of 1.0 means the measure adds up to the close-to-close variance, and
+    high-variance days (2008-09, for example) weigh more than calm ones. Shares can pass 1.0: the
+    range estimator is noisy, and overnight and daytime moves are not independent.
     """
     d = measures.sort_values(["ticker", "date"])
     keep = (
@@ -87,7 +89,7 @@ def episodes(stress: pd.Series) -> int:
 
 
 def stress_by_split(vix_weeks: pd.Series, threshold: float) -> pd.DataFrame:
-    """Per split: weeks, stress weeks, their share, and the episodes they come in."""
+    """Per split: weeks, stress weeks, and the episodes they come in."""
     rows = {}
     for name, (start, end) in SPLITS.items():
         v = vix_weeks.loc[start:end]
@@ -95,7 +97,6 @@ def stress_by_split(vix_weeks: pd.Series, threshold: float) -> pd.DataFrame:
         rows[name] = {
             "weeks": len(v),
             "stress_weeks": int(stress.sum()),
-            "share": float(stress.mean()) if len(v) else np.nan,
             "episodes": episodes(stress),
         }
     return pd.DataFrame(rows).T
