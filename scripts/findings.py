@@ -64,25 +64,29 @@ def main() -> int:
     shares = dg.variance_shares(measures, START, SHARE_END)
     early = dg.variance_shares(measures, START, "2009-12-31")
     late = dg.variance_shares(measures, "2010-01-01", SHARE_END)
-    names = ["Garman-Klass", "Garman-Klass + overnight"]
-    plots.variance_coverage(
-        shares[["gk", "gk_overnight"]].set_axis(names, axis=1), IMAGES / "variance_coverage.png"
-    )
 
     # 2. Stress weeks per split, on the weeks the modeling table has (the last one has no target).
     weeks = pd.DatetimeIndex(week_end(daily["date"]).unique()).sort_values()[:-1]
     vix_weeks = dg.weekly_vix(vix).reindex(weeks)
     by_split = {t: dg.stress_by_split(vix_weeks, t) for t in (30, 25)}
     by_year = dg.stress_weeks_by_year(vix_weeks, [30, 25])
-    labels = {c: c.replace(">=", "≥") for c in by_year.columns}
-    plots.stress_weeks(by_year.rename(columns=labels), {"tune": (2016, 2018), "test": (2019, 2026)},
-                       IMAGES / "stress_weeks.png")  # fmt: skip
 
+    # Check against the notebook before writing anything, so a failed check leaves every output
+    # (both figures and findings.tex) as it was.
     n_weeks, n_stress = len(weeks), int(by_split[30]["stress_weeks"].sum())
     expected = int(notebook_macro("nWeeks").replace(",", "")), int(notebook_macro("nStressWeeks"))
     if (n_weeks, n_stress) != expected:
         print(f"MISMATCH with the notebook: {n_weeks} weeks, {n_stress} stress (want {expected})")
+        print("Nothing was written.")
         return 1
+
+    names = ["Garman-Klass", "Garman-Klass + overnight"]
+    plots.variance_coverage(
+        shares[["gk", "gk_overnight"]].set_axis(names, axis=1), IMAGES / "variance_coverage.png"
+    )
+    labels = {c: c.replace(">=", "≥") for c in by_year.columns}
+    plots.stress_weeks(by_year.rename(columns=labels), {"tune": (2016, 2018), "test": (2019, 2026)},
+                       IMAGES / "stress_weeks.png")  # fmt: skip
 
     numbers = {
         "shareCompanies": f"{len(shares):,}",
