@@ -171,7 +171,8 @@
     \column{0.38\textwidth}
     \small
     \begin{itemize}\setlength\itemsep{0.6em}
-      \item Stress week: VIX $\ge 30$ on the Friday, known when we forecast.
+      \item Stress week: VIX $\ge 30$ at the week's last close (Friday, or Thursday before a
+            holiday), known when we forecast.
       \item Only \stressShare{} of stock-weeks (\nStressWeeks{} weeks), mostly 2008--09, 2020 and 2022.
       \item The test years hold \stressTest{} stress weeks in \stressTestEpisodes{} episodes,
             \stressTestTwenty{} of them in 2020, and the tuning years hold \stressTune{}. At
@@ -274,7 +275,7 @@
     \footnotesize
     \begin{itemize}\setlength\itemsep{0.5em}
       \item \shareCompanies{} companies, 2005--2018 only (train and tune years), days inside the
-            index spell.
+            index spell. Each share sums a company's days, so 2008--09 weighs most.
       \item Overnight is a median \overnightShare{} of close-to-close variance
             (\overnightShareLow{} to \overnightShareHigh{}, 10th to 90th percentile):
             \overnightShareEarly{} in 2005--09, \overnightShareLate{} in 2010--18.
