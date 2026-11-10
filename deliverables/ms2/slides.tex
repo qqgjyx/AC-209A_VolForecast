@@ -183,18 +183,20 @@
 \end{frame}
 
 \begin{frame}{Information leakage: how each risk is closed \speaker{Simon}}
-  \small
-  \begin{tabular}{@{}p{0.3\textwidth}p{0.62\textwidth}@{}}
+  \footnotesize
+  \begin{tabular}{@{}lp{0.48\textwidth}l@{}}
     \toprule
-    Risk & Control \\
+    Risk & Control & Enforced by \\
     \midrule
-    windows past the Friday & all windows end at the close; tests truncate data and recompute \\
-    earnings after the close & an 8-K filed after 16:00 ET counts for the next week (filing time as proxy) \\
-    knowing the next earnings date & extrapolated from past announcement dates only \\
-    10-Q dates as earnings dates & not used: filed weeks after the announcement \\
-    today's index list & the snapshot in force on each date (the last, 2026-08-18, carried forward) \\
-    back-adjusted prices & every price feature is a ratio or a return \\
-    overlapping targets & a one-week gap between training and test windows \\
+    windows past the Friday & all windows end at the close & truncation tests \\
+    earnings after the close & an 8-K filed after 16:00 ET counts for next week & a test \\
+    the next earnings date & extrapolated from past announcement dates only & \texttt{add\_earnings} \\
+    10-Q dates as earnings & not used: filed weeks after the announcement & design \\
+    today's index list & the snapshot in force on each date & \texttt{restrict\_to\_spells} \\
+    back-adjusted prices & every price feature is a ratio or a return & design \\
+    overlapping targets & a one-week gap between training and test windows & the Milestone 3 split \\
+    VIX closes at 16:15 ET & read at the week's last close, for next week & design \\
+    industry code & SEC's current code, not the historical one & noted \\
     \bottomrule
   \end{tabular}
 \end{frame}
