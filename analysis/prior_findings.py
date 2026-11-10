@@ -19,7 +19,7 @@ TRAIN = ("2005-01-01", "2015-12-31")
 HAR = ["har_d", "har_w", "har_m"]
 STRESS_VIX = 30.0  # the project's stress line (VIX at the week's last close)
 MIN_WEEKS = 104  # two years of weeks before a company gets its own HAR fit
-CALM, STRESS = plots.SERIES  # blue for calm, orange for stress
+CALM, STRESS = plots.SERIES[:2]  # blue for calm, orange for stress
 
 
 def repo_root(start: Path | None = None) -> Path:

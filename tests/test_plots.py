@@ -67,8 +67,8 @@ def test_stress_weeks_draws_a_bar_per_year_and_threshold():
 
 
 def test_new_plots_refuse_more_series_than_colors():
-    three = pd.DataFrame({c: [1.0] for c in "abc"}, index=[2020])
+    too_many = pd.DataFrame({f"s{i}": [1.0] for i in range(len(plots.SERIES) + 1)}, index=[2020])
     with pytest.raises(ValueError):
-        plots.variance_coverage(three)
+        plots.variance_coverage(too_many)
     with pytest.raises(ValueError):
-        plots.stress_weeks(three, {})
+        plots.stress_weeks(too_many, {})
