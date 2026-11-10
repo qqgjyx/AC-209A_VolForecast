@@ -330,6 +330,57 @@ def fetch_alpaca_rv(
     return pd.concat([pd.read_parquet(p) for p in paths], ignore_index=True)
 
 
+WRDS_URL = "postgresql+psycopg://{}@wrds-pgdata.wharton.upenn.edu:9737/wrds?sslmode=require"
+CRSP_SPELLS = """
+select permno, mbrstartdt as start, mbrenddt as "end" from crsp.dsp500list_v2
+where mbrenddt >= '{start}'
+"""
+CRSP_ROWS = """
+select permno, dlycaldt as date, dlyopen as open, dlyhigh as high, dlylow as low,
+       dlyclose as close, dlyvol as volume, dlycumfacpr as cfacpr
+from crsp.dsf_v2
+where permno in (select permno from crsp.dsp500list_v2 where mbrenddt >= '{start}')
+  and dlycaldt >= '{start}' and dlycaldt < '{end}'
+"""
+
+
+def fetch_crsp(start: str, end: str, cache_dir: Path) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """S&P 500 spells (permno, start, end inclusive) and their CRSP daily rows, from WRDS.
+
+    Needs the `crsp` extra, a WRDS account named by `WRDS_USERNAME` and its password in
+    `~/.pgpass`. CRSP is licensed per user: the cache under `data/` is never committed.
+    """
+    spells_path, rows_path = cache_dir / "sp500_spells.parquet", cache_dir / "daily.parquet"
+    if not rows_path.exists():
+        from sqlalchemy import create_engine  # optional dependency, only for the first download
+
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        engine = create_engine(WRDS_URL.format(os.environ["WRDS_USERNAME"]))
+        with engine.connect() as con:
+            spells = pd.read_sql(CRSP_SPELLS.format(start=start), con, parse_dates=["start", "end"])
+            rows = pd.read_sql(CRSP_ROWS.format(start=start, end=end), con, parse_dates=["date"])
+        spells.to_parquet(spells_path)
+        rows.to_parquet(rows_path)
+    return pd.read_parquet(spells_path), pd.read_parquet(rows_path)
+
+
+def from_crsp(spells: pd.DataFrame, rows: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """CRSP in the free pipeline's shape: membership snapshots and daily rows, keyed by permno.
+
+    A snapshot is taken on every date the membership changes, as in fja05680/sp500, and the
+    permno goes in the `ticker` column, so `clean`, `coverage` and the features run unchanged.
+    `adj_close` divides by CRSP's split factor, so prices are adjusted for splits only.
+    """
+    s = spells.assign(ticker=spells["permno"].astype(str))
+    dates = pd.DataFrame({"date": np.union1d(s["start"], s["end"] + pd.Timedelta(days=1))})
+    m = dates.merge(s, how="cross")
+    membership = m.loc[m["start"].le(m["date"]) & m["end"].ge(m["date"]), ["date", "ticker"]]
+    d = rows.dropna(subset=["close"])
+    d = d.assign(ticker=d["permno"].astype(str), adj_close=d["close"] / d["cfacpr"])
+    cols = ["date", "ticker", "open", "high", "low", "close", "adj_close", "volume"]
+    return membership.reset_index(drop=True), d[cols].reset_index(drop=True)
+
+
 def size_mb(path: Path) -> float:
     """Total size in MB of a file or of every file under a directory."""
     files = [path] if path.is_file() else [p for p in path.rglob("*") if p.is_file()]

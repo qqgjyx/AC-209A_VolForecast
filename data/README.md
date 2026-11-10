@@ -15,9 +15,11 @@ never refreshed, so delete them to refetch.
 | `alpaca_daily/`, `rv5/` | [Alpaca market data](https://docs.alpaca.markets/docs/about-market-data-api), SIP feed | 2016-01-01 to 2026-11-06 | free account; no redistribution |
 | `fred/` | [FRED](https://fred.stlouisfed.org/): VIXCLS, VXVCLS, BAA10Y, T10Y2Y, DTB3 | downloaded on first run | public |
 | `sec/` | [SEC EDGAR](https://www.sec.gov/search-filings/edgar-application-programming-interfaces) submissions | downloaded on first run | public domain |
+| `crsp/` | [CRSP](https://wrds-www.wharton.upenn.edu) `dsf_v2` and `dsp500list_v2` via WRDS | 2005-01-01 to 2025-12-31 (annual vintage) | per-user licence; no redistribution |
 
-**Licence note.** Neither Yahoo nor Alpaca allows redistribution, so prices are never committed;
-anyone reproducing the work downloads them, exactly as the notebook does.
+**Licence note.** Neither Yahoo, Alpaca nor CRSP allows redistribution, so prices are never
+committed; anyone reproducing the work downloads them, exactly as the notebook does. CRSP needs a
+personal WRDS account; `crsp/` is cached once, so delete it to refetch.
 
 ## Identity tables
 
@@ -33,7 +35,8 @@ Both live in `src/volforecast/data.py` and were checked by hand.
 
 - **Survivorship before 2016.** Yahoo keeps no history for delisted companies, and Alpaca's free
   history starts in 2016, so firms that left before 2016 are missing. The notebook reports coverage
-  by month. CRSP through WRDS would close the gap.
+  by month, and section 3l measures the cost against CRSP: a third fewer stock-weeks before 2016,
+  with a mean log variance 0.04 lower; from 2016 the two agree.
 - **Ticker reuse.** A symbol can now belong to another company; prices are kept only near each
   ticker's index spells (120 days before, 14 after).
 - **Membership after 2026-08-18** is carried forward from the last snapshot.

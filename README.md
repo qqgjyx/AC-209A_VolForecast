@@ -29,7 +29,9 @@ uv sync            # or: pip install -e ".[notebook]"
 ```
 
 Optional keys go in `.env` (git-ignored): `ALPACA_API_KEY_ID` and `ALPACA_API_SECRET_KEY` from a free
-Alpaca paper-trading account, and `SEC_USER_AGENT="Your Name your@email"` for SEC EDGAR.
+Alpaca paper-trading account, and `SEC_USER_AGENT="Your Name your@email"` for SEC EDGAR. The CRSP
+check (notebook section 3l) needs a personal WRDS account: `WRDS_USERNAME` in `.env`, the password in
+`~/.pgpass`, and `uv sync --extra crsp`.
 
 ## 🚀 Notebook
 
@@ -45,7 +47,7 @@ afterwards, in about a minute.
 AC-209A_VolForecast/
 ├── ms2.ipynb               # Milestone 2: get, understand, clean, question (Colab-runnable)
 ├── src/volforecast/
-│   ├── data.py             # fetch + cache: membership, Yahoo, Alpaca, FRED, SEC; RENAMES, WRONG_SERIES
+│   ├── data.py             # fetch + cache: membership, Yahoo, Alpaca, FRED, SEC, CRSP; RENAMES, ...
 │   ├── clean.py            # index spells, cleaning rules with a log, price adjustment, coverage
 │   ├── features.py         # range estimators, weekly table and target, HAR, market, earnings
 │   ├── alpha158.py         # qlib's Alpha158 without qlib, ported from FToken
@@ -69,6 +71,7 @@ AC-209A_VolForecast/
 | [Alpaca](https://docs.alpaca.markets/docs/about-market-data-api) | daily and 5-minute bars from 2016, delisted symbols included | free account, no redistribution |
 | [FRED](https://fred.stlouisfed.org/) | VIX, 3-month VIX, BAA-Treasury spread, 10y-2y slope, T-bill | public |
 | [SEC EDGAR](https://www.sec.gov/search-filings/edgar-application-programming-interfaces) | earnings dates from 8-K Item 2.02, SIC codes | public domain |
+| [CRSP](https://wrds-www.wharton.upenn.edu) via WRDS | every member's daily prices 2005-2025, for the survivorship check | per-user licence, no redistribution |
 
 See [`data/README.md`](data/README.md) for pinned versions, cleaning decisions and known gaps.
 

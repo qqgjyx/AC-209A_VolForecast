@@ -23,7 +23,13 @@ def test_coverage_plots_percent_and_saves(tmp_path):
 
 def test_coverage_refuses_more_series_than_colors():
     with pytest.raises(ValueError):
-        plots.coverage(pd.DataFrame(dict.fromkeys("abc", 1.0), index=MONTHS))
+        plots.coverage(pd.DataFrame(dict.fromkeys("abcd", 1.0), index=MONTHS))
+
+
+def test_coverage_ends_a_series_that_stops_early():
+    shares = pd.DataFrame({"full": 1.0, "short": [0.8] * 6 + [np.nan] * 6}, index=MONTHS)
+    line = plots.coverage(shares).axes[0].lines[1]
+    assert len(line.get_xdata()) == 6
 
 
 def test_cleaning_steps_skips_the_raw_row_and_sorts():

@@ -25,6 +25,7 @@ Repository = "https://github.com/qqgjyx/AC-209A_VolForecast"
 
 [project.optional-dependencies]
 notebook = ["jupyter", "ipykernel", "nbconvert"]  # for pip users; uv sync installs them via dev
+crsp = ["sqlalchemy>=2", "psycopg[binary]>=3"]  # CRSP via WRDS; per-user licence
 
 [dependency-groups]
 dev = ["pytest", "ruff", "mypy", "jupyter", "nbconvert", "ipykernel"]
