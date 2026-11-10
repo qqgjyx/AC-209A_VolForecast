@@ -49,3 +49,26 @@ def test_target_hist_and_proxy_check_draw(tmp_path):
     x = pd.Series(np.random.default_rng(0).normal(-7, 1, 500))
     assert plots.target_hist(x).axes[0].patches
     assert plots.proxy_check(x, x + 0.1, tmp_path / "p.png").axes[0].collections
+
+
+def test_variance_coverage_marks_each_median(tmp_path):
+    shares = pd.DataFrame({"GK": [0.5, 0.6, 0.7], "GK + overnight": [0.9, 1.0, 1.1]})
+    fig = plots.variance_coverage(shares, tmp_path / "v.png")
+    assert (tmp_path / "v.png").stat().st_size > 0
+    medians = [line.get_xdata()[0] for line in fig.axes[0].lines[:2]]
+    assert medians == pytest.approx([60, 100])
+
+
+def test_stress_weeks_draws_a_bar_per_year_and_threshold():
+    counts = pd.DataFrame({"VIX >= 30": [1, 16], "VIX >= 25": [3, 20]}, index=[2019, 2020])
+    fig = plots.stress_weeks(counts, {"test": (2019, 2020)})
+    heights = [p.get_height() for p in fig.axes[0].patches if p.get_width() < 1]
+    assert sorted(heights) == [1, 3, 16, 20]
+
+
+def test_new_plots_refuse_more_series_than_colors():
+    three = pd.DataFrame({c: [1.0] for c in "abc"}, index=[2020])
+    with pytest.raises(ValueError):
+        plots.variance_coverage(three)
+    with pytest.raises(ValueError):
+        plots.stress_weeks(three, {})

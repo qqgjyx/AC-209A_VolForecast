@@ -13,9 +13,9 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from volforecast import plots
+from volforecast import diagnostics, plots
 from volforecast.clean import clean, coverage
-from volforecast.features import build_table
+from volforecast.features import build_table, daily_measures
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "tests"))
@@ -44,6 +44,16 @@ def main() -> None:
         plots.target_hist(table["target"]),
         plots.volatility_over_time(table["har_w"], table["week"]),
         plots.proxy_check(table["har_w"], table["log_rv_parkinson"]),
+    ]:
+        assert fig.axes
+    shares = diagnostics.variance_shares(daily_measures(d), "2020-01-01", "2020-12-31", min_days=1)
+    assert shares["gk"].between(0, 5).all()
+    vix_weeks = diagnostics.weekly_vix(fred["VIXCLS"])
+    by_year = diagnostics.stress_weeks_by_year(vix_weeks, [30, 25])
+    assert diagnostics.stress_by_split(vix_weeks, 30)["weeks"].sum() == len(vix_weeks)
+    for fig in [
+        plots.variance_coverage(shares[["gk", "gk_overnight"]]),
+        plots.stress_weeks(by_year, {"test": (2020, 2020)}),
     ]:
         assert fig.axes
     print(f"pipeline: ok ({len(steps)} cleaning steps, {table.shape[0]} x {table.shape[1]} table)")
