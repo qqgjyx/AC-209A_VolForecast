@@ -7,12 +7,14 @@ from volforecast.data import (
     WRONG_SERIES,
     earnings_times,
     from_crsp,
+    pack_snapshot,
     parse_filings,
     parse_membership,
     realized_variance,
     rv_sample,
     to_current,
     universe,
+    unpack_snapshot,
 )
 
 RAW = pd.DataFrame(
@@ -90,3 +92,19 @@ def test_from_crsp_snapshots_follow_the_spells():
         pd.Timestamp("2005-04-01"): ["2"],
     }  # end is inclusive; the empty snapshot after the last spell has no rows
     assert d["ticker"].tolist() == ["1"] and d["adj_close"].tolist() == [5.0]
+
+
+def test_snapshot_round_trip_skips_crsp(tmp_path):
+    src = tmp_path / "data"
+    (src / "prices").mkdir(parents=True)
+    (src / "prices" / "chunk_000.parquet").write_bytes(b"x")
+    (src / "crsp").mkdir()
+    (src / "crsp" / "daily.parquet").write_bytes(b"licensed")
+    (src / "README.md").write_text("tracked")
+    pack_snapshot(src, tmp_path / "s.tar.gz")
+    dst = tmp_path / "fresh"
+    unpack_snapshot(tmp_path / "s.tar.gz", dst)
+    assert [p.relative_to(dst).as_posix() for p in sorted(dst.rglob("*"))] == [
+        "prices",
+        "prices/chunk_000.parquet",
+    ]

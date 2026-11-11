@@ -37,9 +37,10 @@ check (notebook section 3l) needs a personal WRDS account: `WRDS_USERNAME` in `.
 
 [`ms2.ipynb`](ms2.ipynb) is the Milestone 2 deliverable: it gets, understands and cleans the data,
 builds the stock-week modeling table and states the revised question. Run it locally or on Colab
-with the badge above. **No raw data is shipped**: the notebook downloads every source into `data/`
-on its first run (about 440 MB, most of it SEC filings; about 10 minutes) and reads the cache
-afterwards, in about a minute.
+with the badge above; **no setup or keys are needed**. On its first run the notebook downloads our
+data snapshot (138 MB, Google Drive) into `data/`, so the numbers match the committed outputs. Set
+`SNAPSHOT_URL=""` in `.env` to fetch every source yourself instead (about 450 MB, most of it SEC
+filings; about 10 minutes, with the keys below).
 
 ## 🗂️ Repository Structure
 
@@ -58,6 +59,7 @@ AC-209A_VolForecast/
 ├── scripts/
 │   ├── smoke_test.py       # every stage on synthetic data; --notebooks executes ms2.ipynb
 │   ├── findings.py         # writes findings.tex and two figures, checked against numbers.tex
+│   ├── pack_data.py        # packs data/ (CRSP excluded) into the shared snapshot
 │   └── build_rv5.py        # 5-minute realized variance for every member since 2016 (hours)
 ├── tests/                  # one test file per module, incl. no-lookahead tests
 ├── deliverables/ms2/       # slides and revised proposal (LaTeX + PDF)
