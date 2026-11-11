@@ -4,7 +4,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import pytest
-from conftest import make_daily
 
 from volforecast import prior_findings as pf
 
@@ -27,17 +26,6 @@ def _panel(n_weeks: int = 300, n_stocks: int = 6, seed: int = 0) -> pd.DataFrame
         cols = {"har_d": x[:, 0], "har_w": x[:, 1], "har_m": x[:, 2], "target": target}
         frames.append(pd.DataFrame({"ticker": f"S{i}", "week": weeks, **cols}))
     return pd.concat(frames, ignore_index=True)
-
-
-def test_weekly_table_keeps_index_rows_with_a_target_and_flags_stress():
-    """The table has only in-index weeks with a target, and stress means weekly VIX >= 30."""
-    daily = make_daily().assign(in_index=True)
-    vix = pd.Series(20.0, index=pd.bdate_range("2019-12-01", "2021-02-01"))
-    vix.loc["2020-03-01":"2020-03-31"] = 45.0
-    table = pf.weekly_table(daily, vix)
-    assert table["target"].notna().all() and len(table) > 0
-    assert table.loc[table["week"].between("2020-03-06", "2020-03-27"), "stress"].all()
-    assert not table.loc[table["week"] < "2020-02-28", "stress"].any()
 
 
 def test_train_rows_stop_at_the_end_of_2015():

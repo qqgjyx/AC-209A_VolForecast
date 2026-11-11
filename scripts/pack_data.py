@@ -4,7 +4,8 @@ Usage:
     uv run python scripts/pack_data.py   # writes out/volforecast-bucket.tar.gz
 
 The bucket is for the team and the TF only (CRSP under the team's WRDS licence), so its link
-lives only in this private repository. Replace the Drive file with Manage versions > Upload new
+lives only in this private repository. Rerun it whenever data/ or src/ changes, since a standalone
+notebook runs the wheel, and replace the Drive file with Manage versions > Upload new
 version, so the link in ms2.ipynb holds.
 """
 
