@@ -1,27 +1,31 @@
-"""Pack the caches under data/ (CRSP excluded) into one archive for the shared snapshot.
+"""Pack the team bucket: every cache under data/ (CRSP included) and a volforecast wheel.
 
 Usage:
-    uv run python scripts/pack_data.py            # writes out/volforecast-data.tar.gz
+    uv run python scripts/pack_data.py   # writes out/volforecast-bucket.tar.gz
 
-Replace the file on Google Drive with the new archive (Manage versions > Upload new version), so
-the link in ms2.ipynb's setup cell keeps working.
+The bucket is for the team and the TF only (CRSP under the team's WRDS licence), so its link
+lives only in this private repository. Rerun it whenever data/ or src/ changes, since a standalone
+notebook runs the wheel, and replace the Drive file with Manage versions > Upload new
+version, so the link in ms2.ipynb holds.
 """
 
-import argparse
+import subprocess
+import tarfile
+import tempfile
 from pathlib import Path
 
-from volforecast.data import pack_snapshot, size_mb
+from volforecast.data import size_mb
 
 ROOT = Path(__file__).resolve().parents[1]
-
-
-def main() -> None:
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--out", type=Path, default=ROOT / "out" / "volforecast-data.tar.gz")
-    args = parser.parse_args()
-    pack_snapshot(ROOT / "data", args.out)
-    print(f"wrote {args.out} ({size_mb(args.out):.0f} MB)")
-
+SKIP = {"README.md", ".gitkeep", "rv5_build.log"}  # tracked files and local logs
 
 if __name__ == "__main__":
-    main()
+    out = ROOT / "out" / "volforecast-bucket.tar.gz"
+    with tempfile.TemporaryDirectory() as wheels, tarfile.open(out, "w:gz") as tar:
+        subprocess.run(["uv", "build", "--wheel", "-q", "-o", wheels], cwd=ROOT, check=True)
+        for p in sorted((ROOT / "data").iterdir()):
+            if p.name not in SKIP:
+                tar.add(p, arcname=f"data/{p.name}")
+        for wheel in Path(wheels).glob("*.whl"):
+            tar.add(wheel, arcname=f"dist/{wheel.name}")
+    print(f"wrote {out} ({size_mb(out):.0f} MB)")

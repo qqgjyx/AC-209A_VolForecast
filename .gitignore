@@ -17,6 +17,7 @@ __pycache__/
 !/data/README.md
 /out/*
 !/out/.gitkeep
+/dist/
 
 # Local secrets (API keys, SEC User-Agent contact); never commit them.
 .env

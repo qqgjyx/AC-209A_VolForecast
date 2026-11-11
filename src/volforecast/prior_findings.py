@@ -2,7 +2,7 @@
 
 Each one relates something known at a Friday close to next week's target, so all of them use
 the training years only (2005-2015): the tuning and test years must not shape a model choice.
-The notebook `prior_findings.ipynb` at the repo root runs them and presents the results.
+Phase 4 of `ms2.ipynb` runs them on the modeling table and presents the results.
 """
 
 from pathlib import Path
@@ -12,34 +12,12 @@ import numpy as np
 import pandas as pd
 
 from volforecast import plots  # the shared figure style
-from volforecast.diagnostics import SPLITS, weekly_vix
-from volforecast.features import daily_measures, weekly_panel
+from volforecast.diagnostics import SPLITS
 
 TRAIN = SPLITS["train"]
 HAR = ["har_d", "har_w", "har_m"]
-STRESS_VIX = 30.0  # the project's stress line (VIX at the week's last close)
 MIN_WEEKS = 104  # two years of weeks before a company gets its own HAR fit
 CALM, STRESS = plots.SERIES[:2]  # blue for calm, orange for stress
-
-
-def repo_root(start: Path | None = None) -> Path:
-    """The folder holding pyproject.toml, found by walking up from `start` (or this file)."""
-    here = (start or Path(__file__)).resolve()
-    for folder in [here, *here.parents]:
-        if (folder / "pyproject.toml").exists():
-            return folder
-    raise FileNotFoundError("no pyproject.toml above " + str(here))
-
-
-def weekly_table(daily: pd.DataFrame, vix: pd.Series) -> pd.DataFrame:
-    """Stock-weeks in the index with a target, as in `features.build_table`, plus weekly VIX.
-
-    Only the columns these analyses need: the target, the HAR inputs and the week's return.
-    """
-    w = weekly_panel(daily_measures(daily))
-    w = w[w["in_index"].astype(bool) & w["target"].notna()].drop(columns="in_index")
-    w = w.join(weekly_vix(vix).rename("vix"), on="week")
-    return w.assign(stress=w["vix"].ge(STRESS_VIX)).reset_index(drop=True)
 
 
 def train_rows(table: pd.DataFrame) -> pd.DataFrame:

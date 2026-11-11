@@ -6,8 +6,6 @@ Every `fetch_*` function hits the network once and then reads its cache under `d
 import json
 import logging
 import os
-import re
-import tarfile
 import time
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
@@ -350,8 +348,8 @@ def fetch_crsp(start: str, end: str, cache_dir: Path) -> tuple[pd.DataFrame, pd.
     """S&P 500 spells (permno, start, end inclusive) and their CRSP daily rows, from WRDS.
 
     Spells are cut at `end` (exclusive). Needs the `crsp` extra, a WRDS account named by
-    `WRDS_USERNAME` and its password in `~/.pgpass`. CRSP is licensed per user: the cache under
-    `data/` is never committed; its `request.json` refetches when the range changes.
+    `WRDS_USERNAME` and its password in `~/.pgpass`. The cache is never committed (the team bucket
+    carries it under the team's licence); its `request.json` refetches when the range changes.
     """
     paths = cache_dir / "sp500_spells.parquet", cache_dir / "daily.parquet"
     manifest, request = cache_dir / "request.json", {"start": start, "end": end}
@@ -387,38 +385,6 @@ def from_crsp(spells: pd.DataFrame, rows: pd.DataFrame) -> tuple[pd.DataFrame, p
     d = d.assign(ticker=d["permno"].astype(str), adj_close=d["close"] / d["cfacpr"])
     cols = ["date", "ticker", "open", "high", "low", "close", "adj_close", "volume"]
     return membership.reset_index(drop=True), d[cols].reset_index(drop=True)
-
-
-# Never in a snapshot: CRSP is licensed per user, the rest are tracked or local logs.
-SNAPSHOT_SKIP = {"crsp", "README.md", ".gitkeep", "rv5_build.log"}
-
-
-def pack_snapshot(data_dir: Path, archive: Path) -> None:
-    """Write every cache under `data_dir` except SNAPSHOT_SKIP to a .tar.gz archive."""
-    with tarfile.open(archive, "w:gz") as tar:
-        for p in sorted(data_dir.iterdir()):
-            if p.name not in SNAPSHOT_SKIP:
-                tar.add(p, arcname=p.name)
-
-
-def unpack_snapshot(archive: Path, data_dir: Path) -> None:
-    """Extract a `pack_snapshot` archive into `data_dir`; paths outside it are refused."""
-    data_dir.mkdir(parents=True, exist_ok=True)
-    with tarfile.open(archive) as tar:
-        tar.extractall(data_dir, filter="data")
-
-
-def fetch_snapshot(url: str, data_dir: Path) -> None:
-    """Download our cache snapshot (a Google Drive share link) and unpack it into `data_dir`."""
-    import gdown  # preinstalled on Colab
-
-    file_id = re.search(r"/d/([\w-]+)|[?&]id=([\w-]+)", url)
-    if not file_id:
-        raise ValueError(f"not a Google Drive share link: {url}")
-    archive = data_dir.parent / "snapshot.tar.gz"
-    gdown.download(id=file_id[1] or file_id[2], output=str(archive), quiet=False)  # gdown 5 and 6
-    unpack_snapshot(archive, data_dir)
-    archive.unlink()
 
 
 def size_mb(path: Path) -> float:
