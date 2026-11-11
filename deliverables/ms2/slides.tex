@@ -144,61 +144,72 @@
 %% =================================================================
 %% Target
 %% =================================================================
-\begin{frame}{The target, checked against 5-minute data \speaker{Simon}}
+\begin{frame}{Volatility from daily prices lines up with 5-minute data \speaker{Simon}}
   \begin{columns}[c]
-    \column{0.45\textwidth}
-    \centering\includegraphics[width=0.9\linewidth]{proxy_check.png}
-    \column{0.53\textwidth}
-    \small
-    \begin{itemize}\setlength\itemsep{0.6em}
-      \item Target: $\log \sum_{d \in \text{next week}} \bigl[\tfrac12 \log^2\!\tfrac{H_d}{L_d} - (2\log 2 - 1)\log^2\!\tfrac{C_d}{O_d}\bigr]$
-            (Garman--Klass, 1980).
-      \item The proposal feared daily data is too noisy. Against 5-minute realized variance
-            (Alpaca, \rvCompanies{} companies since 2016, delisted included; \rvN{} stock-weeks):
-            correlation of log variances \rvCorr{} pooled, \rvCorrWithin{} within company.
-      \item Log gap \rvGap{} on average: a level shift that a model absorbs.
-      \item Both sides leave out the overnight move (close to next open). Across \shareCompanies{}
-            companies, Garman--Klass covers a median \gkShare{} of close-to-close variance, and
-            \gkOvernightShare{} with the overnight term added (backup).
+    \column{0.42\textwidth}
+    \centering\includegraphics[width=0.95\linewidth]{proxy_check.png}
+    \column{0.56\textwidth}
+    \begin{itemize}\setlength\itemsep{1em}
+      \item \textbf{We predict} how much each stock will move next week (its variance).
+      \item \textbf{We measure it} from each day's open, high, low and close
+            (Garman--Klass, 1980):\\[0.3em]
+            {\small $\log \sum_{d \in \text{next week}} \bigl[\tfrac12 \log^2\!\tfrac{H_d}{L_d} - (2\log 2 - 1)\log^2\!\tfrac{C_d}{O_d}\bigr]$}
+      \item \textbf{We checked it} against 5-minute data for \rvCompanies{} companies:
+            correlation \rvCorr{}, and \rvCorrWithin{} within a single company.
+      \item \textbf{We leave out} the jump from one day's close to the next day's open
+            (the overnight move), a median \overnightShare{} of a stock's daily variance.
     \end{itemize}
   \end{columns}
 \end{frame}
 
-\begin{frame}{Calm and stress: the regression analogue of class imbalance \speaker{Simon}}
+\begin{frame}{Volatility spikes in a few rare weeks (stress weeks) \speaker{Simon}}
   \begin{columns}[c]
-    \column{0.6\textwidth}
+    \column{0.5\textwidth}
     \includegraphics[width=\linewidth]{volatility_over_time.png}
-    \column{0.38\textwidth}
-    \small
-    \begin{itemize}\setlength\itemsep{0.6em}
-      \item Stress week: VIX $\ge 30$ at the week's last close (Friday, or Thursday before a
-            holiday), known when we forecast.
-      \item Only \stressShare{} of stock-weeks (\nStressWeeks{} weeks), mostly 2008--09, 2020 and 2022.
-      \item The test years hold \stressTest{} stress weeks in \stressTestEpisodes{} episodes,
-            \stressTestTwenty{} of them in 2020, and the tuning years hold \stressTune{}. At
-            VIX $\ge 25$ the test has \stressTestLow{} (backup).
-      \item We will report results separately for calm and stress weeks.
+    \column{0.48\textwidth}
+    \begin{itemize}\setlength\itemsep{1em}
+      \item \textbf{Stress week:} VIX, the market's fear gauge, is 30 or more at the week's
+            close, so we know it before we forecast.
+      \item \textbf{How often:} \nStressWeeks{} of \nWeeks{} weeks, mostly 2008--09, 2020 and 2022.
+      \item \textbf{In the test years:} \stressTest{} stress weeks, \stressTestTwenty{} of them
+            in 2020. The tuning years have \stressTune{}.
     \end{itemize}
   \end{columns}
 \end{frame}
 
-\begin{frame}{Information leakage: how each risk is closed \speaker{Simon}}
-  \footnotesize
-  \begin{tabular}{@{}lp{0.48\textwidth}l@{}}
+\begin{frame}{How we keep future data out of the forecast (leakage) \speaker{Simon}}
+  \small
+  \newcommand{\lft}{\raggedright}  % left-align a cell; rows then end with \tabularnewline
+  \newcommand{\rowline}{\specialrule{0.2pt}{0.35em}{0.35em}}  % thin line between rows
+  \begin{tabular}{@{}p{0.25\textwidth}p{0.33\textwidth}p{0.35\textwidth}@{}}
     \toprule
-    Risk & Control & Enforced by \\
+    \textbf{Risk} & \textbf{Control} & \textbf{Enforced by} \\
     \midrule
-    windows past the Friday & all windows end at the close & truncation tests \\
-    earnings after the close & an 8-K filed after 16:00 ET counts for next week & a test \\
-    the next earnings date & extrapolated from past announcement dates only & \texttt{add\_earnings} \\
-    10-Q dates as earnings & not used: filed weeks after the announcement & design \\
-    today's index list & the snapshot in force on each date & \texttt{restrict\_to\_spells} \\
-    back-adjusted prices & every price feature is a ratio or a return & design \\
-    overlapping targets & a one-week gap between training and test windows & the Milestone 3 split \\
-    VIX closes at 16:15 ET & read at the week's last close, for next week & design \\
-    industry code & SEC's current code, not the historical one & noted \\
+    \lft a feature sees next week's prices
+      & \lft each feature uses only days up to Friday's 4~pm close
+      & \lft \texttt{features.py} test: adding later weeks changes no earlier value
+      \tabularnewline \rowline
+    \lft earnings news after the 4~pm close
+      & \lft an earnings filing (8-K) after 4~pm counts for the next week
+      & \lft \texttt{features.py} test: a 4:30~pm Friday filing counts next week
+      \tabularnewline \rowline
+    \lft picking stocks from today's S\&P 500 list
+      & \lft each date uses that day's index members
+      & \lft \texttt{clean.py} test: a stock counts only between entry and exit
+      \tabularnewline \rowline
+    \lft VIX closes at 4:15~pm, after stocks
+      & \lft Friday's 4:15~pm close is used only for next week
+      & \lft \texttt{features.py} test: each week gets that Friday's VIX
+      \tabularnewline \rowline
+    \lft training weeks run into the test weeks
+      & \lft a one-week gap, as each target looks a week ahead
+      & \lft not yet: the split code comes in Milestone 3
+      \tabularnewline
     \bottomrule
   \end{tabular}
+  \vspace{1em}
+
+  Still in progress: checking when each data source first published its values.
 \end{frame}
 
 %% =================================================================
