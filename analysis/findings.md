@@ -1,9 +1,0 @@
-<!-- Written by prior_findings.ipynb; do not edit. -->
-| # | Analysis | Earlier (25 stocks, daily) | Now (this table, weekly, 2005-2015) | Why it matters |
-|---|---|---|---|---|
-| 1 | HAR fitted company by company | monthly slope 0.12 to 0.61; a constant per stock cut in-sample MSE 3.9% | monthly slope 0.30 to 0.56 (10th to 90th percentile, 394 companies), pooled 0.51. A constant per company cuts in-sample MSE 1.4%, fitting each company 3.1% | A second baseline, HAR pooled with a constant per company, separates the gain from pooling from the gain from features. |
-| 2 | HAR's miss in calm and stress weeks | realized vol about 20% above HAR's forecast on stress days, out of sample 2019-2026 | realized vol +7.6% against HAR in stress weeks, -0.8% in calm weeks (in sample) | A model can look better in stress weeks just by knowing VIX. A HAR+VIX baseline shows how much of a stress-week gain that is. |
-| 3 | Next week's volatility after calm and stress weeks | median next-week vol 27.8% after stress days, 16.7% after calm days (VIX >= 25) | median next-week vol 41.3% after stress weeks, 19.0% after calm weeks (VIX >= 30) | The size of the regime gap Q2 is about. |
-| 4 | HAR's miss by this week's return | +9.3% after the biggest down days, -5.0% after the biggest up days | +9.7% after the worst tenth of weeks, -4.3% after the best | Evidence for the returns and downside-variance features before Q2's block ablation. |
-| 5 | How long volatility remembers | absolute daily returns: autocorrelation 0.22 at 1 day, about 0.05 at 60 days | weekly log variance: autocorrelation 0.69 at 1 week, 0.35 at 26, 0.26 at 52 | Memory past HAR's 4-week window is what a longer lag or a model could still use. |
-| 6 | How much stocks move together | daily return correlation 0.28 calm, 0.47 stress (VIX >= 25) | weekly return correlation 0.33 calm, 0.55 stress | Evidence for the market-wide features (SPY variance, VIX). |

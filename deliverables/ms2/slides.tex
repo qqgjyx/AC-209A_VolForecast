@@ -157,7 +157,8 @@
       \item \textbf{We checked it} against 5-minute data for \rvCompanies{} companies:
             correlation \rvCorr{}, and \rvCorrWithin{} within a single company.
       \item \textbf{We leave out} the jump from one day's close to the next day's open
-            (the overnight move), a median \overnightShare{} of a stock's daily variance.
+            (the overnight move), a median \overnightShare{} of a stock's daily variance
+            in \shareYears{}.
     \end{itemize}
   \end{columns}
 \end{frame}
@@ -170,7 +171,7 @@
     \begin{itemize}\setlength\itemsep{1em}
       \item \textbf{Stress week:} VIX, the market's fear gauge, is 30 or more at the week's
             close, so we know it before we forecast.
-      \item \textbf{How often:} \nStressWeeks{} of \nWeeks{} weeks, mostly 2008--09, 2020 and 2022.
+      \item \textbf{How often:} \nStressWeeks{} of \nWeeks{} weeks, mostly \stressYears{}.
       \item \textbf{In the test years:} \stressTest{} stress weeks, \stressTestTwenty{} of them
             in 2020. The tuning years have \stressTune{}.
     \end{itemize}
@@ -287,11 +288,12 @@
     \column{0.38\textwidth}
     \footnotesize
     \begin{itemize}\setlength\itemsep{0.5em}
-      \item \shareCompanies{} companies, 2005--2018 only (train and tune years), days inside the
+      \item \shareCompanies{} companies, \shareYears{} only (train and tune years), days inside the
             index spell. Each share sums a company's days, so 2008--09 weighs most.
       \item Overnight is a median \overnightShare{} of close-to-close variance
             (\overnightShareLow{} to \overnightShareHigh{}, 10th to 90th percentile):
-            \overnightShareEarly{} in 2005--09, \overnightShareLate{} in 2010--18.
+            \overnightShareEarly{} in \shareYearsEarly{} and \overnightShareLate{} in \shareYearsLate{}
+            for the \shareCompaniesBoth{} companies in both.
       \item Earnings released after the close show up in this move.
       \item \texttt{rv\_overnight} is already a column in the weekly table.
     \end{itemize}

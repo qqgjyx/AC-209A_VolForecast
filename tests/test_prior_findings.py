@@ -1,15 +1,12 @@
-"""Tests for the six follow-up analyses. Run with `uv run pytest analysis`."""
-
-import sys
+"""Tests for the six follow-up analyses in `prior_findings`."""
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import prior_findings as pf
 import pytest
-
-sys.path.insert(0, str(pf.repo_root() / "tests"))
 from conftest import make_daily
+
+from volforecast import prior_findings as pf
 
 
 @pytest.fixture(autouse=True)
@@ -112,7 +109,7 @@ def test_miss_by_return_orders_deciles_from_worst_to_best_week():
     assert out["weeks"].sum() == 5000
 
 
-def test_memory_matches_an_ar1_and_never_pairs_across_a_gap():
+def test_memory_matches_an_ar1():
     """For x_t = 0.8 x_(t-1) + e, the lag-k autocorrelation is about 0.8^k."""
     rng = np.random.default_rng(2)
     weeks = pd.date_range("1980-01-04", periods=2000, freq="W-FRI")
@@ -125,8 +122,22 @@ def test_memory_matches_an_ar1_and_never_pairs_across_a_gap():
     t = pd.concat(frames, ignore_index=True)
     acf = pf.memory(t, max_lag=3)
     assert acf.to_numpy() == pytest.approx([0.8, 0.64, 0.512], abs=0.07)
-    gappy = t[~t["week"].between("2000-01-01", "2000-12-31")]
-    assert pf.memory(gappy, max_lag=1).iloc[0] == pytest.approx(0.8, abs=0.07)
+
+
+def test_memory_never_pairs_two_weeks_across_a_gap():
+    """Two runs of rising weeks with a 5-week hole: only the pairs inside a run count.
+
+    Within each run x_t = x_(t-1) + 1, so lag 1 correlates perfectly. The one pair across the
+    hole (0 after 9) is far off that line, so a version that shifts by rows instead of by
+    calendar week lands well below 1.
+    """
+    weeks = pd.date_range("2010-01-01", periods=25, freq="W-FRI")
+    keep = np.r_[0:10, 15:25]  # weeks 10 to 14 are missing
+    x = np.r_[np.arange(10.0), np.arange(10.0)]
+    t = pd.DataFrame({"ticker": "S0", "week": weeks[keep], "har_w": x})
+    assert pf.memory(t, max_lag=1, min_weeks=1).iloc[0] == pytest.approx(1.0)
+    by_rows = t["har_w"].corr(t["har_w"].shift(1))  # the pairing the function must avoid
+    assert by_rows < 0.8  # 0.67 here
 
 
 def test_comovement_is_higher_when_a_common_factor_dominates():

@@ -2,7 +2,7 @@
 
 Each one relates something known at a Friday close to next week's target, so all of them use
 the training years only (2005-2015): the tuning and test years must not shape a model choice.
-The notebook `prior_findings.ipynb` in this folder runs them and presents the results.
+The notebook `prior_findings.ipynb` at the repo root runs them and presents the results.
 """
 
 from pathlib import Path
@@ -12,10 +12,10 @@ import numpy as np
 import pandas as pd
 
 from volforecast import plots  # the shared figure style
-from volforecast.diagnostics import weekly_vix
+from volforecast.diagnostics import SPLITS, weekly_vix
 from volforecast.features import daily_measures, weekly_panel
 
-TRAIN = ("2005-01-01", "2015-12-31")
+TRAIN = SPLITS["train"]
 HAR = ["har_d", "har_w", "har_m"]
 STRESS_VIX = 30.0  # the project's stress line (VIX at the week's last close)
 MIN_WEEKS = 104  # two years of weeks before a company gets its own HAR fit
@@ -210,9 +210,8 @@ def findings_markdown(now: dict[int, str]) -> str:
         6: "How much stocks move together",
     }
     lines = [
-        "<!-- Written by prior_findings.ipynb; do not edit. -->",
-        "| # | Analysis | Earlier (25 stocks, daily) | Now (this table, weekly, 2005-2015) | "
-        "Why it matters |",
+        "| # | Analysis | Earlier (25 stocks, daily) | "
+        f"Now (this table, weekly, {TRAIN[0][:4]}-{TRAIN[1][:4]}) | Why it matters |",
         "|---|---|---|---|---|",
     ]
     lines += [f"| {k} | {titles[k]} | {EARLIER[k]} | {now[k]} | {WHY[k]} |" for k in titles]
