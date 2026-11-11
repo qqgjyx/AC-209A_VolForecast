@@ -5,6 +5,7 @@
 \usepackage{graphicx}
 \graphicspath{{../../images/}}
 \input{numbers}
+\input{findings}  % written by scripts/findings.py
 
 \definecolor{accent}{HTML}{2A78D6}
 \setbeamercolor{structure}{fg=accent}
@@ -76,7 +77,8 @@
     \textbf{Modeling table}: one stock in one week\\[0.3em]
     \small \nTableRows{} rows $\times$ \nTableCols{} columns, \nCompanies{} companies, \nWeeks{} weeks
     \begin{itemize}
-      \item target: log of next week's Garman--Klass variance
+      \item target: log of next week's Garman--Klass variance (trading hours, with the
+            overnight move in its own column)
       \item HAR lags: day, week, 4 weeks
       \item range, overnight, downside variance; returns; liquidity
       \item market: SPY variance, VIX, rates
@@ -142,52 +144,73 @@
 %% =================================================================
 %% Target
 %% =================================================================
-\begin{frame}{The target, checked against 5-minute data \speaker{Simon}}
+\begin{frame}{Volatility from daily prices lines up with 5-minute data \speaker{Simon}}
   \begin{columns}[c]
-    \column{0.45\textwidth}
-    \centering\includegraphics[width=0.9\linewidth]{proxy_check.png}
-    \column{0.53\textwidth}
-    \small
-    \begin{itemize}\setlength\itemsep{0.6em}
-      \item Target: $\log \sum_{d \in \text{next week}} \bigl[\tfrac12 \log^2\!\tfrac{H_d}{L_d} - (2\log 2 - 1)\log^2\!\tfrac{C_d}{O_d}\bigr]$
-            (Garman--Klass, 1980).
-      \item The proposal feared daily data is too noisy. Against 5-minute realized variance
-            (Alpaca, \rvCompanies{} companies since 2016, delisted included; \rvN{} stock-weeks):
-            correlation of log variances \rvCorr{} pooled, \rvCorrWithin{} within company.
-      \item Log gap \rvGap{} on average: a level shift that a model absorbs.
+    \column{0.42\textwidth}
+    \centering\includegraphics[width=0.95\linewidth]{proxy_check.png}
+    \column{0.56\textwidth}
+    \begin{itemize}\setlength\itemsep{1em}
+      \item \textbf{We predict} how much each stock will move next week (its variance).
+      \item \textbf{We measure it} from each day's open, high, low and close
+            (Garman--Klass, 1980):\\[0.3em]
+            {\small $\log \sum_{d \in \text{next week}} \bigl[\tfrac12 \log^2\!\tfrac{H_d}{L_d} - (2\log 2 - 1)\log^2\!\tfrac{C_d}{O_d}\bigr]$}
+      \item \textbf{We checked it} against 5-minute data for \rvCompanies{} companies:
+            correlation \rvCorr{}, and \rvCorrWithin{} within a single company.
+      \item \textbf{We leave out} the jump from one day's close to the next day's open
+            (the overnight move), a median \overnightShare{} of a stock's daily variance
+            in \shareYears{}.
     \end{itemize}
   \end{columns}
 \end{frame}
 
-\begin{frame}{Calm and stress: the regression analogue of class imbalance \speaker{Simon}}
+\begin{frame}{Volatility spikes in a few rare weeks (stress weeks) \speaker{Simon}}
   \begin{columns}[c]
-    \column{0.6\textwidth}
+    \column{0.5\textwidth}
     \includegraphics[width=\linewidth]{volatility_over_time.png}
-    \column{0.38\textwidth}
-    \small
-    \begin{itemize}\setlength\itemsep{0.6em}
-      \item Stress week: VIX $\ge 30$ on the Friday, known when we forecast.
-      \item Only \stressShare{} of stock-weeks (\nStressWeeks{} weeks), mostly 2008--09, 2020 and 2022.
-      \item We will report results separately for calm and stress weeks.
+    \column{0.48\textwidth}
+    \begin{itemize}\setlength\itemsep{1em}
+      \item \textbf{Stress week:} VIX, the market's fear gauge, is 30 or more at the week's
+            close, so we know it before we forecast.
+      \item \textbf{How often:} \nStressWeeks{} of \nWeeks{} weeks, mostly \stressYears{}.
+      \item \textbf{In the test years:} \stressTest{} stress weeks, \stressTestTwenty{} of them
+            in 2020. The tuning years have \stressTune{}.
     \end{itemize}
   \end{columns}
 \end{frame}
 
-\begin{frame}{Information leakage: how each risk is closed \speaker{Simon}}
+\begin{frame}{How we keep future data out of the forecast (leakage) \speaker{Simon}}
   \small
-  \begin{tabular}{@{}p{0.3\textwidth}p{0.62\textwidth}@{}}
+  \newcommand{\lft}{\raggedright}  % left-align a cell; rows then end with \tabularnewline
+  \newcommand{\rowline}{\specialrule{0.2pt}{0.35em}{0.35em}}  % thin line between rows
+  \begin{tabular}{@{}p{0.25\textwidth}p{0.33\textwidth}p{0.35\textwidth}@{}}
     \toprule
-    Risk & Control \\
+    \textbf{Risk} & \textbf{Control} & \textbf{Enforced by} \\
     \midrule
-    windows past the Friday & all windows end at the close; tests truncate data and recompute \\
-    earnings after the close & an 8-K filed after 16:00 ET counts for the next week (filing time as proxy) \\
-    knowing the next earnings date & extrapolated from past announcement dates only \\
-    10-Q dates as earnings dates & not used: filed weeks after the announcement \\
-    today's index list & the snapshot in force on each date (the last, 2026-08-18, carried forward) \\
-    back-adjusted prices & every price feature is a ratio or a return \\
-    overlapping targets & a one-week gap between training and test windows \\
+    \lft a feature sees next week's prices
+      & \lft each feature uses only days up to Friday's 4~pm close
+      & \lft \texttt{features.py} test: adding later weeks changes no earlier value
+      \tabularnewline \rowline
+    \lft earnings news after the 4~pm close
+      & \lft an earnings filing (8-K) after 4~pm counts for the next week
+      & \lft \texttt{features.py} test: a 4:30~pm Friday filing counts next week
+      \tabularnewline \rowline
+    \lft picking stocks from today's S\&P 500 list
+      & \lft each date uses that day's index members
+      & \lft \texttt{clean.py} test: a stock counts only between entry and exit
+      \tabularnewline \rowline
+    \lft VIX closes at 4:15~pm, after stocks
+      & \lft Friday's 4:15~pm close is used only for next week
+      & \lft \texttt{features.py} test: each week gets that Friday's VIX
+      \tabularnewline \rowline
+    \lft training weeks run into the test weeks
+      & \lft a one-week gap, as each target looks a week ahead
+      & \lft not yet: the split code comes in Milestone 3
+      \tabularnewline
     \bottomrule
   \end{tabular}
+  \vspace{1em}
+
+  Still in progress: checking when each data source first published its values.
 \end{frame}
 
 %% =================================================================
@@ -199,9 +222,12 @@
   \begin{enumerate}\setlength\itemsep{0.6em}
     \item \textbf{Accuracy}: do pooled ridge/lasso and gradient-boosted trees beat per-stock HAR on
           mean QLIKE and MSE? Diebold--Mariano at 5\% on the weekly mean loss difference (Newey--West);
-          all models scored on the same rows.
+          all models scored on the same rows. A second baseline: HAR pooled across stocks with a
+          constant per stock, to separate the gain from pooling from the gain from features. QLIKE on the
+          exponential of a log forecast gets a training-only smearing correction (Duan, 1983).
     \item \textbf{Attribution and regimes}: which feature blocks carry any gain (refit without each
-          block), and does it keep its sign in calm and in stress weeks?
+          block), and does it keep its sign in calm and in stress weeks? Holm correction across
+          the family of tests.
   \end{enumerate}
   \vspace{0.4em}
   \textbf{Changed}: economic-value backtest dropped; earnings from 8-K timestamps; fundamentals
@@ -234,7 +260,7 @@
     \textbf{Milestone 3} (proposed owners)
     \small
     \begin{itemize}
-      \item HAR and GARCH baselines: Simon
+      \item HAR (per stock, and pooled with a constant per stock) and GARCH baselines: Simon
       \item ridge and lasso: Shuo
       \item gradient-boosted trees: Ashley
       \item QLIKE, MSE, Diebold--Mariano: Terry
@@ -247,7 +273,53 @@
       \item May Milestone 3 train on CRSP (WRDS) to 2025 and use free data for 2026?
       \item Do HAR, GARCH, QLIKE and Diebold--Mariano meet the AC209A requirement?
       \item Yearly expanding refits on 2019--2026, or one fit?
+      \item Target: trading-hours variance as now, or add the overnight term back?
     \end{enumerate}
+  \end{columns}
+\end{frame}
+
+%% =================================================================
+%% Backup
+%% =================================================================
+\begin{frame}{Backup: what the daily range misses}
+  \begin{columns}[c]
+    \column{0.6\textwidth}
+    \includegraphics[width=\linewidth]{variance_coverage.png}
+    \column{0.38\textwidth}
+    \footnotesize
+    \begin{itemize}\setlength\itemsep{0.5em}
+      \item \shareCompanies{} companies, \shareYears{} only (train and tune years), days inside the
+            index spell. Each share sums a company's days, so 2008--09 weighs most.
+      \item Overnight is a median \overnightShare{} of close-to-close variance
+            (\overnightShareLow{} to \overnightShareHigh{}, 10th to 90th percentile):
+            \overnightShareEarly{} in \shareYearsEarly{} and \overnightShareLate{} in \shareYearsLate{}
+            for the \shareCompaniesBoth{} companies in both.
+      \item Earnings released after the close show up in this move.
+      \item \texttt{rv\_overnight} is already a column in the weekly table.
+    \end{itemize}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{Backup: stress weeks by split}
+  \begin{columns}[c]
+    \column{0.52\textwidth}
+    \includegraphics[width=\linewidth]{stress_weeks.png}
+    \column{0.46\textwidth}
+    \footnotesize\setlength\tabcolsep{4pt}
+    \begin{tabular}{@{}lrrrr@{}}
+      \toprule
+      Split & Weeks & VIX $\ge 30$ & episodes & VIX $\ge 25$ \\
+      \midrule
+      train & \trainWeeks{} & \stressTrain{} & \stressTrainEpisodes{} & \stressTrainLow{} \\
+      tune & \tuneWeeks{} & \stressTune{} & \stressTuneEpisodes{} & \stressTuneLow{} \\
+      test & \testWeeks{} & \stressTest{} & \stressTestEpisodes{} & \stressTestLow{} \\
+      \bottomrule
+    \end{tabular}
+    \vspace{0.8em}
+    \begin{itemize}\setlength\itemsep{0.5em}
+      \item Tuning (2016--18) has \stressTune{} stress week at VIX $\ge 30$.
+      \item \stressTestTwenty{} of the test's \stressTest{} stress weeks are in 2020.
+    \end{itemize}
   \end{columns}
 \end{frame}
 

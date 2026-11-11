@@ -46,14 +46,18 @@ afterwards, in about a minute.
 ```
 AC-209A_VolForecast/
 ├── ms2.ipynb               # Milestone 2: get, understand, clean, question (Colab-runnable)
+├── prior_findings.ipynb    # six follow-up analyses on the training years, for Milestone 3
 ├── src/volforecast/
 │   ├── data.py             # fetch + cache: membership, Yahoo, Alpaca, FRED, SEC, CRSP; RENAMES, ...
 │   ├── clean.py            # index spells, cleaning rules with a log, price adjustment, coverage
 │   ├── features.py         # range estimators, weekly table and target, HAR, market, earnings
 │   ├── alpha158.py         # qlib's Alpha158 without qlib, ported from FToken
+│   ├── diagnostics.py      # variance shares and stress weeks by split (slides 8, 9, 14, 15)
+│   ├── prior_findings.py   # the analyses behind prior_findings.ipynb
 │   └── plots.py            # the figures in images/
 ├── scripts/
 │   ├── smoke_test.py       # every stage on synthetic data; --notebooks executes ms2.ipynb
+│   ├── findings.py         # writes findings.tex and two figures, checked against numbers.tex
 │   └── build_rv5.py        # 5-minute realized variance for every member since 2016 (hours)
 ├── tests/                  # one test file per module, incl. no-lookahead tests
 ├── deliverables/ms2/       # slides and revised proposal (LaTeX + PDF)
