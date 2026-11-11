@@ -7,11 +7,13 @@ from volforecast.data import (
     WRONG_SERIES,
     earnings_times,
     from_crsp,
+    load_crsp_summary,
     pack_snapshot,
     parse_filings,
     parse_membership,
     realized_variance,
     rv_sample,
+    save_crsp_summary,
     to_current,
     universe,
     unpack_snapshot,
@@ -108,3 +110,14 @@ def test_snapshot_round_trip_skips_crsp(tmp_path):
         "prices",
         "prices/chunk_000.parquet",
     ]
+
+
+def test_crsp_summary_round_trip(tmp_path):
+    weeks = pd.to_datetime(["2005-01-07", "2005-01-14", "2006-01-06"])
+    table = pd.DataFrame({"week": weeks, "har_w": [1.0, 3.0, 5.0]})
+    cov = pd.Series([0.5, 1.0], index=pd.to_datetime(["2005-01-31", "2005-02-28"]))
+    save_crsp_summary(cov, table, {"stock_days": 10, "bar_rules": 1}, tmp_path)
+    c, yearly, n = load_crsp_summary(tmp_path)
+    assert c.tolist() == [0.5, 1.0]
+    assert yearly.loc[2005].tolist() == [2, 2.0] and yearly.loc[2006, "stock_weeks"] == 1
+    assert n.to_dict() == {"stock_days": 10, "bar_rules": 1}

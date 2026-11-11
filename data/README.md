@@ -1,11 +1,10 @@
 # Data
 
-**No raw data is committed to this repository**; everything in this directory except this file is
-git-ignored. On a first run [`ms2.ipynb`](../ms2.ipynb) unpacks our snapshot of these caches
-(`scripts/pack_data.py`, CRSP excluded) from Google Drive. With `SNAPSHOT_URL=""` it instead
-downloads every source through `volforecast.data` and caches it here. The Yahoo and Alpaca daily caches hold a `request.json`, so a changed ticker
-list or date range cannot silently reuse them, and so does `crsp/`; `rv5/`, `sec/` and `fred/` are
-cached per file and
+**No raw data is committed to this repository**; everything here except this file is git-ignored.
+On a first run [`ms2.ipynb`](../ms2.ipynb) unpacks our snapshot of these caches from Google Drive
+(`scripts/pack_data.py`); with `SNAPSHOT_URL=""` it downloads every source through
+`volforecast.data` instead. The Yahoo, Alpaca daily and `crsp/` caches hold a `request.json`, so a
+changed ticker list or date range cannot silently reuse them; the other caches are per file and
 never refreshed, so delete them to refetch.
 
 ## Sources
@@ -18,12 +17,12 @@ never refreshed, so delete them to refetch.
 | `fred/` | [FRED](https://fred.stlouisfed.org/): VIXCLS, VXVCLS, BAA10Y, T10Y2Y, DTB3 | downloaded on first run | public |
 | `sec/` | [SEC EDGAR](https://www.sec.gov/search-filings/edgar-application-programming-interfaces) submissions | downloaded on first run | public domain |
 | `crsp/` | [CRSP](https://wrds-www.wharton.upenn.edu) `dsf_v2` and `dsp500list_v2` via WRDS | 2005-01-01 to 2025-12-31 (annual vintage) | per-user licence; no redistribution |
+| `crsp_summary/` | written by notebook section 3l from `crsp/`: monthly coverage, stock-weeks and mean log variance by year, three counts | same vintage | aggregates only; in the snapshot |
 
-**Licence note.** Yahoo's and Alpaca's terms restrict redistribution and CRSP's licence forbids it.
-Prices are never committed. The snapshot exists only so that course staff and teammates can rerun
-the notebook without API keys; it will be taken down on request, and anyone else can rebuild it
-from the sources with `SNAPSHOT_URL=""`. CRSP needs a personal WRDS account and is never in the
-snapshot.
+**Licence note.** Yahoo's and Alpaca's terms restrict redistribution and CRSP's licence forbids it,
+so prices are never committed. The snapshot exists so course staff and teammates can rerun the
+notebook without keys, and it comes down on request. It holds no CRSP rows, only the aggregates in
+`crsp_summary/`; rebuilding them needs a personal WRDS account.
 
 ## Identity tables
 

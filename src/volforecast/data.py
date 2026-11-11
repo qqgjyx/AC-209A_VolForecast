@@ -6,7 +6,6 @@ Every `fetch_*` function hits the network once and then reads its cache under `d
 import json
 import logging
 import os
-import re
 import tarfile
 import time
 from collections.abc import Callable
@@ -389,7 +388,7 @@ def from_crsp(spells: pd.DataFrame, rows: pd.DataFrame) -> tuple[pd.DataFrame, p
     return membership.reset_index(drop=True), d[cols].reset_index(drop=True)
 
 
-# Never in a snapshot: CRSP is licensed per user, the rest are tracked or local logs.
+# Left out of the snapshot: licensed CRSP rows (crsp_summary/ ships), tracked files, local logs.
 SNAPSHOT_SKIP = {"crsp", "README.md", ".gitkeep", "rv5_build.log"}
 
 
@@ -409,16 +408,40 @@ def unpack_snapshot(archive: Path, data_dir: Path) -> None:
 
 
 def fetch_snapshot(url: str, data_dir: Path) -> None:
-    """Download our cache snapshot (a Google Drive share link) and unpack it into `data_dir`."""
+    """Download our cache snapshot (a Google Drive share link) into an empty `data_dir`."""
+    if (data_dir / "prices").exists():
+        return
     import gdown  # preinstalled on Colab
+    from gdown.parse_url import parse_url
 
-    file_id = re.search(r"/d/([\w-]+)|[?&]id=([\w-]+)", url)
-    if not file_id:
-        raise ValueError(f"not a Google Drive share link: {url}")
     archive = data_dir.parent / "snapshot.tar.gz"
-    gdown.download(id=file_id[1] or file_id[2], output=str(archive), quiet=False)  # gdown 5 and 6
+    gdown.download(id=parse_url(url)[0], output=str(archive), quiet=False)  # gdown 5 and 6
     unpack_snapshot(archive, data_dir)
     archive.unlink()
+
+
+def save_crsp_summary(
+    coverage: pd.Series, table: pd.DataFrame, counts: dict[str, int], out: Path
+) -> None:
+    """The aggregates notebook section 3l shows, the only CRSP output the snapshot may carry.
+
+    `coverage` is CRSP's monthly share of members with data, `table` its weekly panel.
+    """
+    out.mkdir(parents=True, exist_ok=True)
+    coverage.rename("CRSP").to_frame().to_parquet(out / "coverage.parquet")
+    year = table["week"].dt.year
+    yearly = table.groupby(year).agg(stock_weeks=("har_w", "size"), log_variance=("har_w", "mean"))
+    yearly.to_parquet(out / "yearly.parquet")
+    pd.Series(counts, name="n").to_frame().to_parquet(out / "counts.parquet")
+
+
+def load_crsp_summary(path: Path) -> tuple[pd.Series, pd.DataFrame, pd.Series]:
+    """Coverage, yearly table and counts written by `save_crsp_summary`."""
+    return (
+        pd.read_parquet(path / "coverage.parquet")["CRSP"],
+        pd.read_parquet(path / "yearly.parquet"),
+        pd.read_parquet(path / "counts.parquet")["n"],
+    )
 
 
 def size_mb(path: Path) -> float:
