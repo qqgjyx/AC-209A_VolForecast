@@ -11,6 +11,7 @@ keywords = ["realized volatility", "HAR", "S&P 500", "forecasting", "gradient bo
 requires-python = ">=3.12,<3.14"  # matches the AC-209A course environment
 dependencies = [
     # Floors stay low so Colab's preinstalled stack satisfies them without a restart.
+    "gdown>=5",  # the shared data snapshot on Google Drive; preinstalled on Colab
     "matplotlib>=3.8",
     "numpy>=2",
     "pandas>=2.2",
