@@ -6,7 +6,6 @@ Every `fetch_*` function hits the network once and then reads its cache under `d
 import json
 import logging
 import os
-import tarfile
 import time
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
@@ -349,8 +348,8 @@ def fetch_crsp(start: str, end: str, cache_dir: Path) -> tuple[pd.DataFrame, pd.
     """S&P 500 spells (permno, start, end inclusive) and their CRSP daily rows, from WRDS.
 
     Spells are cut at `end` (exclusive). Needs the `crsp` extra, a WRDS account named by
-    `WRDS_USERNAME` and its password in `~/.pgpass`. CRSP is licensed per user: the cache under
-    `data/` is never committed; its `request.json` refetches when the range changes.
+    `WRDS_USERNAME` and its password in `~/.pgpass`. The cache is never committed (the team bucket
+    carries it under the team's licence); its `request.json` refetches when the range changes.
     """
     paths = cache_dir / "sp500_spells.parquet", cache_dir / "daily.parquet"
     manifest, request = cache_dir / "request.json", {"start": start, "end": end}
@@ -386,62 +385,6 @@ def from_crsp(spells: pd.DataFrame, rows: pd.DataFrame) -> tuple[pd.DataFrame, p
     d = d.assign(ticker=d["permno"].astype(str), adj_close=d["close"] / d["cfacpr"])
     cols = ["date", "ticker", "open", "high", "low", "close", "adj_close", "volume"]
     return membership.reset_index(drop=True), d[cols].reset_index(drop=True)
-
-
-# Left out of the snapshot: licensed CRSP rows (crsp_summary/ ships), tracked files, local logs.
-SNAPSHOT_SKIP = {"crsp", "README.md", ".gitkeep", "rv5_build.log"}
-
-
-def pack_snapshot(data_dir: Path, archive: Path) -> None:
-    """Write every cache under `data_dir` except SNAPSHOT_SKIP to a .tar.gz archive."""
-    with tarfile.open(archive, "w:gz") as tar:
-        for p in sorted(data_dir.iterdir()):
-            if p.name not in SNAPSHOT_SKIP:
-                tar.add(p, arcname=p.name)
-
-
-def unpack_snapshot(archive: Path, data_dir: Path) -> None:
-    """Extract a `pack_snapshot` archive into `data_dir`; paths outside it are refused."""
-    data_dir.mkdir(parents=True, exist_ok=True)
-    with tarfile.open(archive) as tar:
-        tar.extractall(data_dir, filter="data")
-
-
-def fetch_snapshot(url: str, data_dir: Path) -> None:
-    """Download our cache snapshot (a Google Drive share link) into an empty `data_dir`."""
-    if (data_dir / "prices").exists():
-        return
-    import gdown  # preinstalled on Colab
-    from gdown.parse_url import parse_url
-
-    archive = data_dir.parent / "snapshot.tar.gz"
-    gdown.download(id=parse_url(url)[0], output=str(archive), quiet=False)  # gdown 5 and 6
-    unpack_snapshot(archive, data_dir)
-    archive.unlink()
-
-
-def save_crsp_summary(
-    coverage: pd.Series, table: pd.DataFrame, counts: dict[str, int], out: Path
-) -> None:
-    """The aggregates notebook section 3l shows, the only CRSP output the snapshot may carry.
-
-    `coverage` is CRSP's monthly share of members with data, `table` its weekly panel.
-    """
-    out.mkdir(parents=True, exist_ok=True)
-    coverage.rename("CRSP").to_frame().to_parquet(out / "coverage.parquet")
-    year = table["week"].dt.year
-    yearly = table.groupby(year).agg(stock_weeks=("har_w", "size"), log_variance=("har_w", "mean"))
-    yearly.to_parquet(out / "yearly.parquet")
-    pd.Series(counts, name="n").to_frame().to_parquet(out / "counts.parquet")
-
-
-def load_crsp_summary(path: Path) -> tuple[pd.Series, pd.DataFrame, pd.Series]:
-    """Coverage, yearly table and counts written by `save_crsp_summary`."""
-    return (
-        pd.read_parquet(path / "coverage.parquet")["CRSP"],
-        pd.read_parquet(path / "yearly.parquet"),
-        pd.read_parquet(path / "counts.parquet")["n"],
-    )
 
 
 def size_mb(path: Path) -> float:

@@ -28,19 +28,18 @@ cd AC-209A_VolForecast
 uv sync            # or: pip install -e ".[notebook]"
 ```
 
-Optional keys go in `.env` (git-ignored): `ALPACA_API_KEY_ID` and `ALPACA_API_SECRET_KEY` from a free
-Alpaca paper-trading account, and `SEC_USER_AGENT="Your Name your@email"` for SEC EDGAR. The CRSP
-check (notebook section 3l) needs a personal WRDS account: `WRDS_USERNAME` in `.env`, the password in
-`~/.pgpass`, and `uv sync --extra crsp`.
+Keys are needed only to refetch the data (`BUCKET_ID=""`), in `.env` (git-ignored):
+`ALPACA_API_KEY_ID` and `ALPACA_API_SECRET_KEY` from a free Alpaca paper-trading account,
+`SEC_USER_AGENT="Your Name your@email"` for SEC EDGAR, and for CRSP a WRDS account (`WRDS_USERNAME`,
+the password in `~/.pgpass`, `uv sync --extra crsp`).
 
 ## 🚀 Notebook
 
 [`ms2.ipynb`](ms2.ipynb) is the Milestone 2 deliverable: it gets, understands and cleans the data,
 builds the stock-week modeling table and states the revised question. Run it locally or on Colab
-with the badge above; **no setup or keys are needed**. On its first run the notebook downloads our
-data snapshot (138 MB, Google Drive) into `data/`, so the numbers match the committed outputs. Set
-`SNAPSHOT_URL=""` in `.env` to fetch every source yourself instead (about 450 MB, most of it SEC
-filings; about 10 minutes, with the keys below).
+with the badge above, or upload the `.ipynb` alone: **it runs on its own**. On a first run it
+downloads the team bucket (Google Drive, private to the team and the TF) with every cache it reads,
+CRSP included, and the `volforecast` package, so the numbers match the committed outputs.
 
 ## 🗂️ Repository Structure
 
@@ -59,7 +58,7 @@ AC-209A_VolForecast/
 ├── scripts/
 │   ├── smoke_test.py       # every stage on synthetic data; --notebooks executes ms2.ipynb
 │   ├── findings.py         # writes findings.tex and two figures, checked against numbers.tex
-│   ├── pack_data.py        # packs data/ (CRSP excluded) into the shared snapshot
+│   ├── pack_data.py        # packs data/ and a volforecast wheel into the team bucket
 │   └── build_rv5.py        # 5-minute realized variance for every member since 2016 (hours)
 ├── tests/                  # one test file per module, incl. no-lookahead tests
 ├── deliverables/ms2/       # slides and revised proposal (LaTeX + PDF)
@@ -77,7 +76,7 @@ AC-209A_VolForecast/
 | [Alpaca](https://docs.alpaca.markets/docs/about-market-data-api) | daily and 5-minute bars from 2016, delisted symbols included | free account, no redistribution |
 | [FRED](https://fred.stlouisfed.org/) | VIX, 3-month VIX, BAA-Treasury spread, 10y-2y slope, T-bill | public |
 | [SEC EDGAR](https://www.sec.gov/search-filings/edgar-application-programming-interfaces) | earnings dates from 8-K Item 2.02, SIC codes | public domain |
-| [CRSP](https://wrds-www.wharton.upenn.edu) via WRDS | every member's daily prices 2005-2025, for the survivorship check | per-user licence, no redistribution |
+| [CRSP](https://wrds-www.wharton.upenn.edu) via WRDS | every member's daily prices 2005-2025, for the survivorship check | team licence; in the private bucket only |
 
 See [`data/README.md`](data/README.md) for pinned versions, cleaning decisions and known gaps.
 

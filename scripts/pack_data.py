@@ -1,18 +1,30 @@
-"""Pack the caches under data/ (CRSP rows excluded) into out/volforecast-data.tar.gz.
+"""Pack the team bucket: every cache under data/ (CRSP included) and a volforecast wheel.
 
 Usage:
-    uv run python scripts/pack_data.py
+    uv run python scripts/pack_data.py   # writes out/volforecast-bucket.tar.gz
 
-Then replace the Drive file (Manage versions > Upload new version) so the notebook's link holds.
+The bucket is for the team and the TF only (CRSP under the team's WRDS licence), so its link
+lives only in this private repository. Replace the Drive file with Manage versions > Upload new
+version, so the link in ms2.ipynb holds.
 """
 
+import subprocess
+import tarfile
+import tempfile
 from pathlib import Path
 
-from volforecast.data import pack_snapshot, size_mb
+from volforecast.data import size_mb
 
 ROOT = Path(__file__).resolve().parents[1]
+SKIP = {"README.md", ".gitkeep", "rv5_build.log"}  # tracked files and local logs
 
 if __name__ == "__main__":
-    out = ROOT / "out" / "volforecast-data.tar.gz"
-    pack_snapshot(ROOT / "data", out)
+    out = ROOT / "out" / "volforecast-bucket.tar.gz"
+    with tempfile.TemporaryDirectory() as wheels, tarfile.open(out, "w:gz") as tar:
+        subprocess.run(["uv", "build", "--wheel", "-q", "-o", wheels], cwd=ROOT, check=True)
+        for p in sorted((ROOT / "data").iterdir()):
+            if p.name not in SKIP:
+                tar.add(p, arcname=f"data/{p.name}")
+        for wheel in Path(wheels).glob("*.whl"):
+            tar.add(wheel, arcname=f"dist/{wheel.name}")
     print(f"wrote {out} ({size_mb(out):.0f} MB)")
