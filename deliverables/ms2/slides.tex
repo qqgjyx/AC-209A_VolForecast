@@ -92,53 +92,63 @@
 %% =================================================================
 %% Cleaning
 %% =================================================================
-\begin{frame}{Survivorship: who is missing, and when \speaker{Shuo}}
+\begin{frame}{Who is missing: survivorship \speaker{Shuo}}
   \begin{columns}[c]
-    \column{0.6\textwidth}
-    \includegraphics[width=\linewidth]{coverage.png}
-    \column{0.38\textwidth}
-    \small
-    \begin{itemize}\setlength\itemsep{0.5em}
-      \item Yahoo drops delisted firms and files renamed ones under the new symbol.
-      \item \nRenames{} renames recovered (BK $\to$ BNY, ANTM $\to$ ELV, \ldots).
-      \item Alpaca fills members that traded in 2016 or later.
-      \item Coverage: \covEarly{} in 2005, \covTest{} in 2019, \covEnd{} in 2026.
-      \item Pre-2016 training data leans toward survivors.
-    \end{itemize}
-  \end{columns}
-\end{frame}
-
-\begin{frame}{What survivorship costs: a CRSP check \speaker{Shuo}}
-  \begin{columns}[c]
-    \column{0.6\textwidth}
+    \column{0.52\textwidth}
     \includegraphics[width=\linewidth]{coverage_crsp.png}
-    \column{0.38\textwidth}
-    \small
-    \begin{itemize}\setlength\itemsep{0.5em}
-      \item CRSP (Harvard's WRDS licence), same cleaning: every member, every day, 2005--2025.
-      \item 2005--2015: \crspWeeksFree{} stock-weeks in the free data, \crspWeeksCrsp{} in CRSP.
-      \item Survivors are calmer: mean log variance \crspGap{} below CRSP's in the same year before
-            2016, within 0.01 after.
-      \item From 2019 under 1\% of stock-weeks are missing: the test period is barely affected.
+    \column{0.46\textwidth}
+    \footnotesize
+    \textbf{Why check}: each week we forecast every index member, including firms that later leave; no one knows in advance which will.
+    \begin{itemize}\setlength\itemsep{0.2em}
+      \item Yahoo keeps only firms still listed today: coverage \covEarly{} of 2005 members, \covEnd{} in 2026.
+      \item Alpaca keeps delisted firms, but only from 2016: the jump.
+      \item Before 2016, firms that left (acquired or bankrupt) are missing: not a random sample.
+      \item CRSP check, 2005--2015: \crspWeeksFree{} vs \crspWeeksCrsp{} stock-weeks; the firms we keep
+            are slightly calmer (mean log variance \crspGap{} lower).
+      \item From 2019 under 1\% missing: the test period is barely affected.
     \end{itemize}
   \end{columns}
 \end{frame}
 
-\begin{frame}{Cleaning: each rule, and what it removes \speaker{Shuo}}
+\begin{frame}{Cleaning the raw prices: identity, then values \speaker{Shuo}}
   \begin{columns}[c]
-    \column{0.55\textwidth}
+    \column{0.5\textwidth}
     \includegraphics[width=\linewidth]{cleaning_steps.png}
-    \column{0.43\textwidth}
-    \small
-    \begin{enumerate}\setlength\itemsep{0.4em}
-      \item \textbf{Index spells}: Yahoo reuses tickers (today's \texttt{FB} is an ETF).
-      \item \textbf{Wrong series}: \nWrong{} hand-checked (Yahoo's PARA trades near \$100{,}000);
-            \nBreaks{} series that change company (Yahoo's JCI before 2016 is Tyco).
-      \item \textbf{Impossible bars} and \textbf{no-trade days}.
-      \item Prices scaled by \texttt{adj\_close / close}, as qlib does.
+    \column{0.48\textwidth}
+    \footnotesize
+    \textbf{Identity}: is each row the index member on that day?
+    \begin{enumerate}\setlength\itemsep{0.25em}
+      \item \textbf{Wrong time}: tickers are reused (today's \texttt{FB} is an ETF), so keep rows near each index spell.
+      \item \textbf{Wrong company}: \nWrong{} series are another security (Yahoo's PARA near \$100{,}000).
+      \item \textbf{Company switch}: \nBreaks{} series change firm on a date (JCI before 2016 is Tyco).
     \end{enumerate}
-    \nRawRows{} $\to$ \nCleanRows{} stock-days. No rule looks at later rows.
+    \textbf{Values}: 1 impossible bar, 284 zero-volume days removed.\\[0.3em]
+    \textbf{Unusual values kept}:
+    \nZeroRange{} days with high $=$ low, so zero Garman--Klass variance (floored at $10^{-6}$);
+    the largest daily returns are real events (Fannie Mae $-90\%$ in 2008, SVB $-60\%$ in 2023).\\[0.3em]
+    \nRawRows{} $\to$ \nCleanRows{} stock-days. No rule reads later rows.
   \end{columns}
+\end{frame}
+
+\begin{frame}{The modeling table: missing values and feature scale \speaker{Shuo}}
+  %% Shares below are from ms2.ipynb sections 3g and 3j; not yet exported to numbers.tex.
+  \small
+  \textbf{Missing values}: no cell is missing in the clean prices; gaps appear once features are built.\\[0.4em]
+  \begin{tabular}{@{}lrl@{}}
+    \toprule
+    Column & Missing & Why \\
+    \midrule
+    3-month VIX (\texttt{VXVCLS}) & 9.2\% & series starts December 2007 \\
+    earnings timing & 7--8\% & delisted firms are absent from SEC's current ticker list \\
+    60-day Alpha158 windows & 1.0\% & first weeks after a firm enters the index \\
+    \bottomrule
+  \end{tabular}\\[0.6em]
+  \begin{itemize}\setlength\itemsep{0.35em}
+    \item \textbf{No row is dropped.} Boosted trees take NaN; ridge and lasso impute the training-window
+          median plus a missing-value indicator. Milestone 3 compares imputation choices.
+    \item \textbf{Scale}: feature standard deviations run from 0.004 to 14, so ridge and lasso
+          standardize every feature inside each training window; trees need no scaling.
+  \end{itemize}
 \end{frame}
 
 %% =================================================================
