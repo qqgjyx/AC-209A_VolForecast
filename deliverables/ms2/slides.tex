@@ -269,20 +269,22 @@
 %% =================================================================
 \begin{frame}{Revised question \speaker{Terry}}
   \small
-  Train 2005--2015, tune 2016--2018, test 2019--2026 with yearly expanding refits.
-  \begin{enumerate}\setlength\itemsep{0.6em}
-    \item \textbf{Accuracy}: do pooled ridge/lasso and gradient-boosted trees beat per-stock HAR on
-          mean QLIKE and MSE? Diebold--Mariano at 5\% on the weekly mean loss difference (Newey--West);
-          all models scored on the same rows. A second baseline: HAR pooled across stocks with a
-          constant per stock, to separate the gain from pooling from the gain from features. QLIKE on the
-          exponential of a log forecast gets a training-only smearing correction (Duan, 1983).
-    \item \textbf{Attribution and regimes}: which feature blocks carry any gain (refit without each
-          block), and does it keep its sign in calm and in stress weeks? Holm correction across
-          the family of tests.
+  Train 2005--2015, tune 2016--2018, test 2019--2026. Each test year we refit on all earlier data.
+  \begin{enumerate}\setlength\itemsep{0.5em}
+    \item \textbf{Accuracy.} Do ridge, lasso, and gradient-boosted trees, trained on all stocks
+          together, beat HAR fit one stock at a time? We score mean QLIKE and MSE. A Diebold--Mariano
+          test at 5\%, on the average loss each week with Newey--West errors, tells us if the gap is real.
+          Every model is scored on the same rows. We also fit a pooled HAR with a constant per stock,
+          so we can see what pooling adds and what the extra features add. Forecasts are logs, so QLIKE
+          uses the exponential of the forecast, with Duan's (1983) smearing correction from training only.
+    \item \textbf{Where a gain comes from.} We drop one feature block at a time and refit. We then check
+          whether the gain points the same way in calm weeks and in stress weeks, with a Holm correction
+          across these tests.
   \end{enumerate}
-  \vspace{0.4em}
-  \textbf{Changed}: economic-value backtest dropped; earnings from 8-K timestamps; fundamentals
-  deferred (XBRL starts 2009); Alpha158 added; stress defined by VIX, not calendar years.
+  \vspace{0.35em}
+  \textbf{What changed.} We dropped the portfolio backtest. Earnings dates come from the 8-K filing
+  time. Fundamentals wait, because XBRL starts in 2009. We added Alpha158. A stress week is a Friday
+  when the VIX closes at 30 or above.
 \end{frame}
 
 \begin{frame}{Staff notes and the AC209A requirement \speaker{Terry}}
