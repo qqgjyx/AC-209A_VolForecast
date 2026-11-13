@@ -80,7 +80,7 @@
     of Chicago; we query it through WRDS, Wharton's (UPenn) research data service, under Harvard's license.}
 \end{frame}
 
-\begin{frame}{What one row is: one stock, one Friday \speaker{Juntang}}
+\begin{frame}{What one row is \speaker{Juntang}}
   \centering
   \vspace*{0.4em}
   \begin{tikzpicture}[x=1cm, y=1cm, font=\footnotesize,
@@ -100,21 +100,20 @@
     % HAR lags
     \node[lb, anchor=east] at (-0.15, -0.85) {HAR lags};
     \draw[br] (8.49, -0.35) -- (8.85, -0.35) node[midway, below=3pt, lb] {day};
-    \draw[br] (6.75, -0.85) -- (8.85, -0.85) node[midway, below=3pt, lb] {week};
-    \draw[br] (0, -0.85) -- (8.85, -0.85) node[midway, below=3pt, lb] (month) {month (4 weeks)};
+    \draw[br] (0, -0.85) -- (8.85, -0.85) node[midway, below=3pt, lb] (month) {month};
     % the row, on the same grid: features left of the forecast line, target right of it
     \node[cell, fill=gray!12, minimum width=1.3cm] (k1) at (0, -2.15) {\texttt{AAPL}};
     \node[cell, fill=gray!12, minimum width=2.0cm] (k2) at (1.3, -2.15) {\texttt{2020-03-13}};
     \node[cell, fill=accent!12, minimum width=5.9cm] (f) at (3.3, -2.15)
       {\texttt{har\_d}\enspace\texttt{har\_w}\enspace\texttt{har\_m}\enspace\texttt{VIXCLS}\enspace$\dots$};
     \node[cell, fill=target!20, minimum width=2.45cm] (y) at (9.2, -2.15) {\texttt{target}};
-    \node[lb, anchor=north] at (1.65, -2.52) {key $(i, t)$:\\stock and week};
+    \node[lb, anchor=north] at (1.65, -2.52) {key $(i, t)$};
     \node[lb, anchor=north] at (f.south |- 0, -2.52) {features $\mathbf{x}_{i,t}$:\\known at that Friday's close};
     \node[lb, anchor=north] at (y.south |- 0, -2.52) {target $y_{i,t+1}$:\\next week's log variance};
     \draw[-latex, accent!70] (month.south) -- (month.south |- f.north);
     \draw[-latex, target] (next.south) -- (next.south |- y.north);
     % forecast time, from the timeline down into the row
-    \draw[dashed, thick] (9.2, 0.55) node[above, font=\scriptsize\bfseries] {Friday 4 pm: forecast}
+    \draw[dashed, thick] (9.2, 0.55) node[above, font=\scriptsize\bfseries] {Friday 4 pm}
       -- (9.2, -1.85);
   \end{tikzpicture}
 
@@ -128,7 +127,7 @@
   \vspace{0.6em}
   \centering
   \fcolorbox{accent}{accent!8}{\normalsize\enspace Learn \enspace $\mathbf{x}_{i,t} \;\longmapsto\; y_{i,t+1}$\enspace}\\[0.3em]
-  {\scriptsize\color{gray} the stock-by-period panel of \citet{gu2020ml}: monthly there, weekly here}
+  {\scriptsize\color{gray} the stock-by-period panel of \citet{gu2020ml}}
 \end{frame}
 
 %% =================================================================
