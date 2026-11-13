@@ -35,5 +35,6 @@ __pycache__/
 /deliverables/**/*.nav
 /deliverables/**/*.out
 /deliverables/**/*.snm
+/deliverables/**/*.synctex.gz
 /deliverables/**/*.toc
 /deliverables/**/*.vrb
