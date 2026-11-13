@@ -6,6 +6,7 @@ from volforecast.data import (
     RENAMES,
     WRONG_SERIES,
     earnings_times,
+    from_crsp,
     parse_filings,
     parse_membership,
     realized_variance,
@@ -73,3 +74,19 @@ def test_realized_variance_sums_squared_regular_session_returns():
     rv = realized_variance(bars).iloc[0]  # 09:00 and 16:00 bars are outside the session
     assert rv["n_bars"] == 2
     assert rv["rv5"] == pytest.approx(np.log(1.1) ** 2 + np.log(1.1) ** 2)
+
+
+def test_from_crsp_snapshots_follow_the_spells():
+    spells = pd.DataFrame({"permno": [1, 2], "start": pd.to_datetime(["2005-01-03", "2005-02-01"]),
+                           "end": pd.to_datetime(["2005-03-31", "2005-12-31"])})  # fmt: skip
+    rows = pd.DataFrame({"permno": [1, 1], "date": pd.to_datetime(["2005-01-03", "2005-01-04"]),
+                         "open": 10.0, "high": 11.0, "low": 9.0, "close": [10.0, None],
+                         "volume": 100.0, "cfacpr": 2.0})  # fmt: skip
+    m, d = from_crsp(spells, rows)
+    members = m.groupby("date")["ticker"].apply(sorted).to_dict()
+    assert members == {
+        pd.Timestamp("2005-01-03"): ["1"],
+        pd.Timestamp("2005-02-01"): ["1", "2"],
+        pd.Timestamp("2005-04-01"): ["2"],
+    }  # end is inclusive; the empty snapshot after the last spell has no rows
+    assert d["ticker"].tolist() == ["1"] and d["adj_close"].tolist() == [5.0]

@@ -1,9 +1,10 @@
 # Data
 
-**No raw data is shipped in this repository.** [`ms2.ipynb`](../ms2.ipynb) downloads every source at
-runtime through `volforecast.data` and caches it here; everything in this directory except this
-file is git-ignored. The Yahoo and Alpaca daily caches hold a `request.json`, so a changed ticker
-list or date range cannot silently reuse them; `rv5/`, `sec/` and `fred/` are cached per file and
+**No raw data is committed to this repository**; everything here except this file is git-ignored.
+On a first run [`ms2.ipynb`](../ms2.ipynb) unpacks the team bucket of these caches from Google
+Drive (`scripts/pack_data.py`); with `BUCKET_ID=""` it downloads every source through
+`volforecast.data` instead. The Yahoo, Alpaca daily and `crsp/` caches hold a `request.json`, so a
+changed ticker list or date range cannot silently reuse them; the other caches are per file and
 never refreshed, so delete them to refetch.
 
 ## Sources
@@ -15,9 +16,11 @@ never refreshed, so delete them to refetch.
 | `alpaca_daily/`, `rv5/` | [Alpaca market data](https://docs.alpaca.markets/docs/about-market-data-api), SIP feed | 2016-01-01 to 2026-11-06 | free account; no redistribution |
 | `fred/` | [FRED](https://fred.stlouisfed.org/): VIXCLS, VXVCLS, BAA10Y, T10Y2Y, DTB3 | downloaded on first run | public |
 | `sec/` | [SEC EDGAR](https://www.sec.gov/search-filings/edgar-application-programming-interfaces) submissions | downloaded on first run | public domain |
+| `crsp/` | [CRSP](https://wrds-www.wharton.upenn.edu) `dsf_v2` and `dsp500list_v2` via WRDS | 2005-01-01 to 2025-12-31 (annual vintage) | team licence; in the private bucket only |
 
-**Licence note.** Neither Yahoo nor Alpaca allows redistribution, so prices are never committed;
-anyone reproducing the work downloads them, exactly as the notebook does.
+**Licence note.** Yahoo's and Alpaca's terms restrict redistribution and CRSP is licensed, so no
+data is ever committed. The bucket is shared only with the team and the TF, CRSP under the team's
+WRDS licence, and its link lives only in this private repository and the course submission.
 
 ## Identity tables
 
@@ -33,7 +36,8 @@ Both live in `src/volforecast/data.py` and were checked by hand.
 
 - **Survivorship before 2016.** Yahoo keeps no history for delisted companies, and Alpaca's free
   history starts in 2016, so firms that left before 2016 are missing. The notebook reports coverage
-  by month. CRSP through WRDS would close the gap.
+  by month, and section 3l measures the cost against CRSP: a third fewer stock-weeks before 2016,
+  with a mean log variance 0.04 below CRSP's in the same year; from 2016 the gap is under 0.01.
 - **Ticker reuse.** A symbol can now belong to another company; prices are kept only near each
   ticker's index spells (120 days before, 14 after).
 - **Membership after 2026-08-18** is carried forward from the last snapshot.

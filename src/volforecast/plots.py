@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-SERIES = ["#2a78d6", "#eb6834"]  # categorical slots 1-2 of the reference palette
+SERIES = ["#2a78d6", "#eb6834", "#1baf7a"]  # categorical slots 1-3 of the reference palette
 INK, MUTED, GRID = "#0b0b0b", "#52514e", "#e4e3df"
 plt.rcParams.update({
     "figure.figsize": (8, 4), "figure.dpi": 120, "font.size": 12, "axes.titlesize": 14,
@@ -30,9 +30,8 @@ def coverage(shares: pd.DataFrame, path: Path | None = None) -> plt.Figure:
         raise ValueError(f"at most {len(SERIES)} series, got {shares.shape[1]}")
     fig, ax = plt.subplots()
     for color, (name, s) in zip(SERIES, shares.items(), strict=False):
+        s = s.dropna()  # a source may end early (CRSP's last vintage)
         ax.plot(s.index, s * 100, color=color, label=name)
-        ax.annotate(f"{s.iloc[-1] * 100:.0f}%", (s.index[-1], s.iloc[-1] * 100),
-                    xytext=(4, 0), textcoords="offset points", va="center", color=INK)  # fmt: skip
     ax.set(title="Survivorship: index members with price data", xlabel="Date",
            ylabel="Members with data (%)", ylim=(50, 101))  # fmt: skip
     ax.legend(frameon=False, loc="lower right")
@@ -84,5 +83,50 @@ def proxy_check(reference: pd.Series, proxy: pd.Series, path: Path | None = None
     ax.plot([lo, hi], [lo, hi], color=SERIES[1], linewidth=1.5, label="45-degree line")
     ax.set(title="Daily-range target vs 5-minute realized variance", xlim=(lo, hi), ylim=(lo, hi))
     ax.set(xlabel="log weekly 5-minute RV", ylabel="log weekly Garman-Klass variance")
+    ax.legend(frameon=False, loc="upper left")
+    return _save(fig, path)
+
+
+def variance_coverage(shares: pd.DataFrame, path: Path | None = None) -> plt.Figure:
+    """Per company, the share of close-to-close variance two measures capture, with medians."""
+    if shares.shape[1] > len(SERIES):
+        raise ValueError(f"at most {len(SERIES)} series, got {shares.shape[1]}")
+    fig, ax = plt.subplots()
+    bins = list(np.linspace(0, 160, 65))  # 2.5-point bins; shares above 160% go in the last
+    for row, (color, (name, s)) in enumerate(zip(SERIES, shares.items(), strict=False)):
+        pct = s.dropna() * 100
+        ax.hist(pct.clip(upper=bins[-1]), bins=bins, color=color, alpha=0.55, label=name)
+        ax.axvline(pct.median(), color=color, linewidth=1.5)
+        side = (-4, "right") if row == 0 else (4, "left")  # first label left of its line
+        ax.annotate(f"median {pct.median():.0f}%", (pct.median(), 1), color=color,
+                    xycoords=("data", "axes fraction"), xytext=(side[0], -14),
+                    textcoords="offset points", ha=side[1])  # fmt: skip
+    ax.axvline(100, color=MUTED, linewidth=1, linestyle="--")  # 100%: all of the variance
+    ax.set(title="How much of close-to-close variance each measure captures",
+           xlabel="Share of close-to-close variance, per company (%)",
+           ylabel="Companies")  # fmt: skip
+    ax.legend(frameon=False, loc="center left")
+    return _save(fig, path)
+
+
+def stress_weeks(
+    counts: pd.DataFrame, spans: dict[str, tuple[int, int]], path: Path | None = None
+) -> plt.Figure:
+    """Stress weeks per year for each VIX threshold, with labeled spans (tuning, test) shaded."""
+    if counts.shape[1] > len(SERIES):
+        raise ValueError(f"at most {len(SERIES)} series, got {counts.shape[1]}")
+    fig, ax = plt.subplots()
+    width = 0.8 / counts.shape[1]
+    for i, (color, (name, s)) in enumerate(zip(SERIES, counts.items(), strict=False)):
+        ax.bar(s.index + (i - (counts.shape[1] - 1) / 2) * width, s.to_numpy(), width=width,
+               color=color, label=name)  # fmt: skip
+    for label, (first, last) in spans.items():
+        ax.axvspan(first - 0.5, last + 0.5, color=GRID, alpha=0.6, zorder=0)
+        ax.annotate(label, ((first + last) / 2, 1), xycoords=("data", "axes fraction"),
+                    xytext=(0, -14), textcoords="offset points", ha="center",
+                    color=MUTED)  # fmt: skip
+    ax.set(title="Stress weeks per year (VIX at the end of the week)", xlabel="Year",
+           ylabel="Weeks")  # fmt: skip
+    ax.grid(axis="x", visible=False)
     ax.legend(frameon=False, loc="upper left")
     return _save(fig, path)

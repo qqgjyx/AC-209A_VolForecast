@@ -28,16 +28,18 @@ cd AC-209A_VolForecast
 uv sync            # or: pip install -e ".[notebook]"
 ```
 
-Optional keys go in `.env` (git-ignored): `ALPACA_API_KEY_ID` and `ALPACA_API_SECRET_KEY` from a free
-Alpaca paper-trading account, and `SEC_USER_AGENT="Your Name your@email"` for SEC EDGAR.
+Keys are needed only to refetch the data (`BUCKET_ID=""`), in `.env` (git-ignored):
+`ALPACA_API_KEY_ID` and `ALPACA_API_SECRET_KEY` from a free Alpaca paper-trading account,
+`SEC_USER_AGENT="Your Name your@email"` for SEC EDGAR, and for CRSP a WRDS account (`WRDS_USERNAME`,
+the password in `~/.pgpass`, `uv sync --extra crsp`).
 
 ## 🚀 Notebook
 
 [`ms2.ipynb`](ms2.ipynb) is the Milestone 2 deliverable: it gets, understands and cleans the data,
 builds the stock-week modeling table and states the revised question. Run it locally or on Colab
-with the badge above. **No raw data is shipped**: the notebook downloads every source into `data/`
-on its first run (about 440 MB, most of it SEC filings; about 10 minutes) and reads the cache
-afterwards, in about a minute.
+with the badge above, or upload the `.ipynb` alone: **it runs on its own**. On a first run it
+downloads the team bucket (Google Drive, private to the team and the TF) with every cache it reads,
+CRSP included, and the `volforecast` package, so the numbers match the committed outputs.
 
 ## 🗂️ Repository Structure
 
@@ -45,13 +47,17 @@ afterwards, in about a minute.
 AC-209A_VolForecast/
 ├── ms2.ipynb               # Milestone 2: get, understand, clean, question (Colab-runnable)
 ├── src/volforecast/
-│   ├── data.py             # fetch + cache: membership, Yahoo, Alpaca, FRED, SEC; RENAMES, WRONG_SERIES
+│   ├── data.py             # fetch + cache: membership, Yahoo, Alpaca, FRED, SEC, CRSP; RENAMES, ...
 │   ├── clean.py            # index spells, cleaning rules with a log, price adjustment, coverage
 │   ├── features.py         # range estimators, weekly table and target, HAR, market, earnings
 │   ├── alpha158.py         # qlib's Alpha158 without qlib, ported from FToken
+│   ├── diagnostics.py      # variance shares and stress weeks by split (slides 8, 9, 14, 15)
+│   ├── prior_findings.py   # six earlier findings rerun on the training years (Phase 4)
 │   └── plots.py            # the figures in images/
 ├── scripts/
 │   ├── smoke_test.py       # every stage on synthetic data; --notebooks executes ms2.ipynb
+│   ├── findings.py         # writes findings.tex and two figures, checked against numbers.tex
+│   ├── pack_data.py        # packs data/ and a volforecast wheel into the team bucket
 │   └── build_rv5.py        # 5-minute realized variance for every member since 2016 (hours)
 ├── tests/                  # one test file per module, incl. no-lookahead tests
 ├── deliverables/ms2/       # slides and revised proposal (LaTeX + PDF)
@@ -69,6 +75,7 @@ AC-209A_VolForecast/
 | [Alpaca](https://docs.alpaca.markets/docs/about-market-data-api) | daily and 5-minute bars from 2016, delisted symbols included | free account, no redistribution |
 | [FRED](https://fred.stlouisfed.org/) | VIX, 3-month VIX, BAA-Treasury spread, 10y-2y slope, T-bill | public |
 | [SEC EDGAR](https://www.sec.gov/search-filings/edgar-application-programming-interfaces) | earnings dates from 8-K Item 2.02, SIC codes | public domain |
+| [CRSP](https://wrds-www.wharton.upenn.edu) via WRDS | every member's daily prices 2005-2025, for the survivorship check | team licence; in the private bucket only |
 
 See [`data/README.md`](data/README.md) for pinned versions, cleaning decisions and known gaps.
 

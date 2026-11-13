@@ -56,16 +56,17 @@ price-volume factors \citep{yang2020qlib} join the features.
 %% =================================================================
 \section*{2. Data}
 
-\href{https://github.com/fja05680/sp500}{S\&P 500 membership by date} (\nSnapshots{} snapshots,
-\nOldTickers{} tickers since 2005, \nUniverse{} companies once renames are merged); daily prices from \href{https://pypi.org/project/yfinance/}{Yahoo
-Finance} (\nYahoo{} tickers, 2005--2026) and \href{https://alpaca.markets}{Alpaca} (from 2016, for
-\nAlpaca{} members Yahoo lacks, plus 5-minute bars); market state from
-\href{https://fred.stlouisfed.org}{FRED} (VIX, 3-month VIX, credit spread, curve slope, T-bill);
-earnings-release filing times and industry codes from
-\href{https://www.sec.gov/search-filings/edgar-application-programming-interfaces}{SEC EDGAR}. The raw
-data is \dataMB{} MB and \nRawRows{} stock-days, \nCleanRows{} after cleaning. The modeling table has
-\textbf{\nTableRows{} rows and \nTableCols{} columns}: one row per stock and week (\nCompanies{}
-companies, \nWeeks{} weeks), holding the target and every feature known at that Friday's close.
+Four sources from the original proposal: S\&P 500 membership by date \citep{aultman2026sp500}
+(\nSnapshots{} snapshots, \nOldTickers{} tickers since 2005, \nUniverse{} companies once renames are
+merged); market state from FRED \citep{fred2026} (VIX, 3-month VIX, credit spread, curve slope,
+T-bill); daily prices from Yahoo Finance \citep{aroussi2026yfinance} (\nYahoo{} tickers, 2005--2026);
+earnings-release filing times and industry codes from SEC EDGAR \citep{sec2026edgar}. Two added since:
+Alpaca \citep{alpaca2026data}, whose daily bars from 2016 fill \nAlpaca{} members Yahoo lacks and whose
+5-minute bars check the target, and CRSP \citep{crsp2026}, every member's daily prices to 2025 through
+WRDS, for the survivorship check. The raw table has one row per stock and trading day, \nRawRows{} rows
+(\dataMB{} MB), \nCleanRows{} after cleaning. The modeling table has \textbf{\nTableRows{} rows and
+\nTableCols{} columns}: one row per stock and week (\nCompanies{} companies, \nWeeks{} weeks), holding
+the target and every feature known at that Friday's close.
 
 %% =================================================================
 %% Findings
@@ -76,15 +77,20 @@ companies, \nWeeks{} weeks), holding the target and every feature known at that 
   \item \textbf{Survivorship.} Yahoo drops delisted companies. We recovered \nRenames{} renamed tickers
         (BK became BNY) and filled members Yahoo lacks from Alpaca from 2016; \nNoData{} tickers, all gone
         before 2016, have no free data. Coverage of index members is \covEarly{} in 2005, \covTest{} in
-        2019 and \covEnd{} in 2026, so pre-2016 training data leans toward survivors. CRSP through WRDS
-        would close the gap; we will ask the TF.
+        2019 and \covEnd{} in 2026, so pre-2016 training data leans toward survivors. A check against
+        CRSP (WRDS, every member) measures the cost: from 2005 to 2015 the free table has
+        \crspWeeksFree{} stock-weeks against \crspWeeksCrsp{}, and its mean log variance is \crspGap{}
+        below CRSP's in the same year, on average (about 4\% less variance); from 2016 the gap is
+        under 0.01, and from 2019 under 1\% of stock-weeks are missing. We propose to train on CRSP
+        to 2025.
   \item \textbf{Ticker reuse and wrong series.} Yahoo reuses symbols (today's \texttt{FB} is an ETF), so
         prices are kept only near each ticker's index spells; \nWrong{} series inside a spell belong to
         other securities (Yahoo's \texttt{PARA} trades near \$100{,}000), and \nBreaks{} change company on a date
         (Yahoo's \texttt{JCI} before 2016 is Tyco); hand-checked tables remove both.
-  \item \textbf{The target is a sound proxy.} Against 5-minute realized variance for 24 current members
-        since 2016 (\rvN{} stock-weeks), log weekly Garman--Klass variance has correlation \rvCorr{} with it, easing the
-        proposal's worry about noisy daily targets; delisted and pre-2016 stocks are not covered by this check.
+  \item \textbf{The target is a sound proxy.} Against 5-minute realized variance for \rvCompanies{} companies
+        since 2016, delisted ones included (\rvN{} stock-weeks), log weekly Garman--Klass variance has
+        correlation \rvCorr{} with it, and \rvCorrWithin{} within company, easing the proposal's worry
+        about noisy daily targets; weeks before 2016 are not covered by this check.
   \item \textbf{Stress is rare.} \stressShare{} of stock-weeks are stress weeks, so results must be
         reported per regime, not as one pooled loss.
   \item \textbf{Leakage.} Feature windows end at the Friday close (unit tests truncate the data and
@@ -114,9 +120,10 @@ stress weeks.
 
 Economic-value backtest: dropped. Regularized regression and boosted trees: the two pooled models of
 Q1; clustering and neural networks wait. yfinance failures and missing delisted stocks: fetches are
-cached and resumable, renames, wrong series and the Alpaca fill are documented, and coverage is
-reported. XBRL only from mid-2009: fundamentals deferred. AC209A outside method: the Diebold--Mariano
-test on QLIKE. HAR and GARCH(1,1) are the baselines; none of these is covered in class.
+cached and resumable (the notebook runs with no keys from a team copy), renames, wrong series and the
+Alpaca fill are documented, and coverage is reported. XBRL only from mid-2009: fundamentals deferred.
+AC209A outside method: the Diebold--Mariano test on QLIKE. HAR and GARCH(1,1) are the baselines; none
+of these is covered in class.
 
 \textbf{Use of generative AI.} Claude Code (Anthropic) helped write the data pipeline, tests and this
 text; the group reviewed every step and verified the numbers, which the notebook computes and exports.
