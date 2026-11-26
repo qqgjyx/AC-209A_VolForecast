@@ -2,7 +2,7 @@
 
 Usage:
     uv run python scripts/smoke_test.py              # pipeline only, offline, seconds
-    uv run python scripts/smoke_test.py --notebooks  # also executes ms2.ipynb in place
+    uv run python scripts/smoke_test.py --notebooks  # also executes ms2.ipynb and ms3.ipynb
 """
 
 import argparse
@@ -12,10 +12,12 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+from sklearn.linear_model import Ridge
 
-from volforecast import diagnostics, plots
+from volforecast import diagnostics, eda, factors, metrics, models, plots
 from volforecast.clean import clean, coverage
-from volforecast.features import build_table, daily_measures
+from volforecast.features import build_table, daily_measures, long_memory
+from volforecast.pipeline import walk_forward
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "tests"))
@@ -24,7 +26,7 @@ from conftest import make_daily  # noqa: E402  the tests' synthetic panel
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--notebooks", action="store_true", help="also execute ms2.ipynb")
+    parser.add_argument("--notebooks", action="store_true", help="also execute the notebooks")
     args = parser.parse_args()
 
     daily = make_daily()
@@ -58,10 +60,37 @@ def main() -> None:
         assert fig.axes
     print(f"pipeline: ok ({len(steps)} cleaning steps, {table.shape[0]} x {table.shape[1]} table)")
 
+    # Milestone 3: baselines and a ridge through the walk-forward loop, factors, EDA
+    table = table.merge(long_memory(d), on=["ticker", "week"], how="left").dropna(subset=models.HAR)
+    returns = daily_measures(d).set_index(["ticker", "date"])["ret"].sort_index()
+    numeric = [c for c in table.columns if c not in ("ticker", "week", "target", "sic2")]
+    heavy = [c for c in numeric if c not in models.HAR]  # every other feature, as normal scores
+    candidates = {
+        "per-stock HAR": models.PerStock(min_weeks=10), "pooled HAR": models.pooled_ols(models.HAR),
+        "FE": models.FixedEffects(), "GARCH": models.Garch(returns, min_days=50, n_jobs=1),
+        "ridge": models.linear(Ridge(alpha=10.0), models.HAR, heavy, ["sic2"]),
+    }  # fmt: skip
+    fc = {
+        name: walk_forward(m, table, "2020-07-01", "2020-12-31", freq="QS")
+        for name, m in candidates.items()
+    }
+    scores = metrics.compare(table["target"], fc, "per-stock HAR", table["week"])
+    assert np.isfinite(scores[["qlike", "mse"]].to_numpy()).all()
+    ic = factors.ic_summary(factors.rank_ic(table, ["har_w", "har_q"], "target"))
+    shares = eda.variance_decomposition(table["target"], table["ticker"], table["week"])
+    assert ic["hit"].between(0, 1).all() and shares.between(0, 1).all()
+    for fig in [
+        plots.model_scores(scores, "qlike", "per-stock HAR"),
+        plots.variance_decomposition(shares),
+    ]:
+        assert fig.axes
+    print(f"models: ok ({len(fc)} models, {scores.attrs['rows']} forecast rows)")
+
     if args.notebooks:
-        cmd = ["jupyter", "nbconvert", "--to", "notebook", "--execute", "--inplace", "ms2.ipynb"]
-        subprocess.run([sys.executable, "-m", *cmd], check=True, cwd=ROOT)
-        print("ms2.ipynb: ok")
+        for notebook in ["ms2.ipynb", "ms3.ipynb"]:
+            cmd = ["jupyter", "nbconvert", "--to", "notebook", "--execute", "--inplace", notebook]
+            subprocess.run([sys.executable, "-m", *cmd], check=True, cwd=ROOT)
+            print(f"{notebook}: ok")
 
 
 if __name__ == "__main__":

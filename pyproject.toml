@@ -1,6 +1,6 @@
 [project]
 name = "volforecast"
-version = "0.1.0"
+version = "0.2.1"
 description = "Forecasting next-week realized volatility of S&P 500 stocks (CS1090A/AC209A project 12)"
 readme = "README.md"
 authors = [
@@ -11,13 +11,17 @@ keywords = ["realized volatility", "HAR", "S&P 500", "forecasting", "gradient bo
 requires-python = ">=3.12,<3.14"  # matches the AC-209A course environment
 dependencies = [
     # Floors stay low so Colab's preinstalled stack satisfies them without a restart.
+    "arch>=7",  # GARCH(1,1) baseline
     "gdown>=5",  # the shared data snapshot on Google Drive; preinstalled on Colab
+    "gplearn>=0.4.3",  # factor evolution by genetic programming; tested with 0.4.3
     "matplotlib>=3.8",
     "numpy>=2",
     "pandas>=2.2",
     "pyarrow>=15",  # parquet engine for the caches under data/
     "python-dotenv>=1",  # reads SEC_USER_AGENT and API keys from .env
     "requests>=2.31",  # SEC EDGAR
+    "scikit-learn>=1.4",  # pipelines, ridge, lasso
+    "statsmodels>=0.15",  # diebold_mariano_test is new in 0.15
     "yfinance>=1",
 ]
 

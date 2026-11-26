@@ -126,3 +126,24 @@ def test_earnings_join_several_tickers(daily):
     assert (
         out.groupby("ticker")["weeks_since_earnings"].count().loc[["AAA", "BBB", "CCC"]].gt(0).all()
     )
+
+
+def test_long_memory_ignores_later_data(daily):
+    """har_q and har_y of a week never move when later weeks arrive."""
+    from volforecast.features import long_memory
+
+    cutoff = pd.Timestamp("2020-06-26")
+    full = long_memory(daily.assign(in_index=True)).set_index(["ticker", "week"])
+    part = long_memory(daily[daily["date"] <= cutoff].assign(in_index=True))
+    part = part.set_index(["ticker", "week"])
+    pd.testing.assert_frame_equal(full.loc[part.index], part)
+    assert full["har_y"].notna().any() and full["har_q"].notna().any()
+
+
+def test_add_market_lags_next_day_series_by_one_business_day():
+    days = pd.bdate_range("2020-01-06", "2020-01-17")  # two weeks, Monday to Friday
+    fred = pd.DataFrame({"VIXCLS": np.arange(10.0), "DTB3": np.arange(10.0)}, index=days)
+    fridays = pd.to_datetime(["2020-01-10", "2020-01-17"])
+    market = pd.DataFrame({"week": fridays, "har_w": -6.0, "ret": 0.0})
+    out = add_market(pd.DataFrame({"week": fridays}), market, fred, next_day=["DTB3"])
+    assert out["VIXCLS"].tolist() == [4.0, 9.0] and out["DTB3"].tolist() == [3.0, 8.0]

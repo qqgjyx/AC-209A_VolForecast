@@ -1,7 +1,7 @@
 # AC-209A_VolForecast
 
-Milestone 2 done: `ms2.ipynb` builds the stock-week table; slides and the revised proposal live in
-`deliverables/ms2/`. Milestone 3 (EDA, baselines) is next.
+Milestone 3 drafted: `ms3.ipynb` (EDA, factors, baselines, ridge/lasso on validation 2016-2018,
+pipeline) and `deliverables/ms3/`; `ms2.ipynb` builds the stock-week table. Final models are next.
 
 ## Scope
 
@@ -25,6 +25,12 @@ Milestone 2 done: `ms2.ipynb` builds the stock-week table; slides and the revise
 - Membership is the snapshot in force on each date; lags never cross a gap in a ticker's rows.
 - AC209A outside method: HAR (Corsi 2009), QLIKE (Patton 2011), Diebold-Mariano (1995); confirm with the TF.
 - The notebook presents, `src/volforecast` computes; one test file per module.
+- Every model is a scikit-learn regressor on table rows and runs through `pipeline.walk_forward`
+  (refit at each period start on rows whose target week ended before it); test years 2019-2026 are
+  read once, for the final evaluation. Validation (2016-2018) chooses penalties and blocks.
+  A row whose target week ends in 2019 or later is a test row (`pipeline.split_of`), and ms3.ipynb
+  blanks every test target on load. FRED's H.15 rates enter a day late (`pipeline.NEXT_DAY`).
+- EDA that informs a choice reads the training years (2005-2015) only.
 
 ## Layout
 

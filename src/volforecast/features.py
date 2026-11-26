@@ -4,6 +4,8 @@ One row of the weekly table is one stock in one week (weeks end on Friday). Ever
 data up to that Friday's close; the target is the log realized variance of the next week.
 """
 
+from collections.abc import Sequence
+
 import numpy as np
 import pandas as pd
 
@@ -76,12 +78,16 @@ def weekly_panel(d: pd.DataFrame) -> pd.DataFrame:
     return w.drop(columns=["rv", "last_gk"])
 
 
-def add_market(w: pd.DataFrame, market: pd.DataFrame, fred: pd.DataFrame) -> pd.DataFrame:
+def add_market(
+    w: pd.DataFrame, market: pd.DataFrame, fred: pd.DataFrame, next_day: Sequence[str] = ()
+) -> pd.DataFrame:
     """Join market-wide features known at each Friday close.
 
-    market: weekly panel of SPY (from `weekly_panel`); fred: daily FRED columns.
+    market: weekly panel of SPY (from `weekly_panel`); fred: daily FRED columns; next_day: FRED
+    columns published the next business day, which enter a day late (a Friday gets Thursday's).
     """
     spy = market.set_index("week")[["har_w", "ret"]].add_prefix("spy_")
+    fred = fred.assign(**{c: fred[c].shift(1) for c in next_day})
     macro = fred.resample("W-FRI").last().ffill()
     return w.join(spy, on="week").join(macro, on="week")
 
@@ -135,21 +141,41 @@ def alpha158_weekly(daily: pd.DataFrame, chunk: int = 25) -> pd.DataFrame:
 
 
 def build_table(
-    daily: pd.DataFrame, spy: pd.DataFrame, fred: pd.DataFrame, events: pd.DataFrame | None = None
+    daily: pd.DataFrame,
+    spy: pd.DataFrame,
+    fred: pd.DataFrame,
+    events: pd.DataFrame | None = None,
+    next_day: Sequence[str] = (),
 ) -> pd.DataFrame:
     """The modeling table: stock-weeks in the index at the Friday close that have a target.
 
     daily: the clean, adjusted stock-day table with `in_index`; spy: SPY's raw daily bars;
-    fred: daily FRED columns; events: SEC earnings times and SIC codes, if fetched.
+    fred: daily FRED columns; events: SEC earnings times and SIC codes, if fetched;
+    next_day: FRED columns lagged a day (`add_market`).
     """
     market = weekly_panel(daily_measures(adjust_prices(spy)))
-    w = add_market(weekly_panel(daily_measures(daily)), market, fred)
+    w = add_market(weekly_panel(daily_measures(daily)), market, fred, next_day)
     if events is not None:
         w = add_earnings(w, events)
         w = w.join(events.groupby("ticker")["sic"].first().str[:2].rename("sic2"), on="ticker")
     w = w.merge(alpha158_weekly(daily), on=["ticker", "week"], how="left")
     keep = w["in_index"] & w["target"].notna()
     return w[keep].drop(columns="in_index").reset_index(drop=True)
+
+
+def long_memory(daily: pd.DataFrame) -> pd.DataFrame:
+    """Quarterly and yearly HAR lags: log of the mean weekly variance over 13 and 52 weeks.
+
+    Volatility stays autocorrelated far past HAR's 4-week window (ms2.ipynb, 4e). Windows follow
+    `weekly_panel`'s runs of consecutive weeks and need half of their weeks.
+    """
+    w = weekly_panel(daily_measures(daily))[["ticker", "week", "har_w"]]
+    run = _runs(w["ticker"], w["week"], pd.Timedelta(days=7))
+    rv = np.exp(w["har_w"])
+    for name, n in [("har_q", 13), ("har_y", 52)]:
+        mean = rv.groupby(run).transform(lambda s, n=n: s.rolling(n, min_periods=n // 2).mean())
+        w[name] = np.log(mean)
+    return w.drop(columns="har_w")
 
 
 def weekly_log_rv(rv: pd.DataFrame) -> pd.Series:
